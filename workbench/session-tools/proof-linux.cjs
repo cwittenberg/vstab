@@ -19,7 +19,7 @@ async function wait(predicate) { const end = Date.now() + 10000; while (Date.now
     daemonPid = Number(fs.readFileSync('/proc/' + session.pid + '/stat', 'utf8').split(' ')[3]);
     await one.request('attach', {sessionId: id});
     const inputId = crypto.randomUUID();
-    const input = {sessionId: id, inputId, data: 'printf "executed-once Ω🌱\\n" >> proof.txt; sleep .2; printf "completed-while-detached\\n"\r'};
+    const input = {sessionId: id, inputId, data: 'trap "" HUP TERM; printf "executed-once Ω🌱\\n" >> proof.txt; sleep .2; printf "completed-while-detached\\n"\r'};
     await one.request('input', input); await one.request('input', input); one.close();
     await sleep(400);
     two = new SessionClient({workspace, ptyModule, temporary: workspace});
@@ -34,11 +34,14 @@ async function wait(predicate) { const end = Date.now() + 10000; while (Date.now
     const file = fs.readFileSync(path.join(workspace, 'proof.txt'), 'utf8');
     assert.equal(file, 'executed-once Ω🌱\n');
     const report = {environment: 'Linux host; real pinned node-pty native binding, separate detached daemon',
-      samePtyPid: session.pid === restored.pid, shellPid: session.pid, independentDaemonPid: daemonPid,
+      engineProtocol: two.engineVersion, samePtyPid: session.pid === restored.pid, shellPid: session.pid, independentDaemonPid: daemonPid,
       outputWhileDetachedRecovered: output.includes('completed-while-detached'), duplicateInputExecutedOnce: true,
       unicodePreserved: file.includes('Ω🌱'), resizeObserved: output.includes('44 132'),
       markerFileBytes: Buffer.byteLength(file), capturedAt: new Date().toISOString()};
+    process.kill(session.pid, 'SIGHUP'); await sleep(50);
+    process.kill(session.pid, 0); report.shellReallyIgnoredSighup = true;
     await two.request('stop', {sessionId: id});
+    report.stopConfirmedNativeExit = !fs.existsSync('/proc/' + session.pid);
     report.explicitStopRemovedSession = (await two.request('list')).length === 0;
     const target = path.resolve(__dirname, '../../artifacts/features/persistent-terminals-linux.json');
     fs.mkdirSync(path.dirname(target), {recursive: true}); fs.writeFileSync(target, JSON.stringify(report, null, 2) + '\n');

@@ -1,7 +1,15 @@
 'use strict';
 
 function registerDocumentCommands(vscode, context, native, beforeNavigate = async () => true) {
-  const remoteUri = path => vscode.Uri.from({scheme: 'vscode-remote', authority: 'remote', path});
+  const remoteUri = path => {
+    // File changes are matched by full URI identity. The resolved workbench can
+    // use localhost:port even though its bootstrap resolver is named "remote".
+    // Opening the same bytes through another authority misses those change events.
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const filesystem = root?.scheme === 'vscode-remote' || root?.scheme === 'file' ? root : null;
+    return vscode.Uri.from({scheme: filesystem?.scheme || 'vscode-remote',
+      authority: filesystem?.authority ?? 'remote', path});
+  };
   const guarded = callback => async (...args) => {
     try { return await callback(...args); }
     catch (error) { if (error.code !== 'Cancelled') await vscode.window.showErrorMessage(error.message); }

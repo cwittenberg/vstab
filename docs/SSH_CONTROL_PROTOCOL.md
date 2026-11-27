@@ -73,19 +73,23 @@ Diagnostics: `{line, message, severity:'error'|'warning'}`.
 | `ssh.connect` | `{profileId,path?}` | `{accepted:true}`; native credential and host-key dialogs, then normal connection stages; optional path selects a known recent folder on connection |
 | `ssh.disconnect` | `{}` | `{accepted:true}`; close SSH transport and return to native local workspace |
 | `ssh.reconnect` | `{profileId}` | `{accepted:true}`; explicit reconnect, prompt for session credentials as needed |
-| `ssh.listDirectory` | `{profileId,connectionId,path}` | `{path,parent,home,directories:[{name,path,symbolicLink}],truncated}`; existing authenticated session only |
-| `ssh.openFolder` | `{profileId,connectionId,path}` | `{accepted:true}`; validate actual directory, reuse SSH session/tunnel, publish updated Ready and reopen bundled IDE with selected folder |
+| `ssh.recordWorkspace` | `{profileId,connectionId,path}` | Record the actual workspace URI already selected by core VS Code; metadata only, with no filesystem access or navigation. Empty path records a standard empty/closed workspace |
 | `ssh.importKey` | `{profileId}` | `{accepted:true}`; native Android document picker, private key copy under `HOME/.ssh/keys`, mode0600, config IdentityFile updated; no key bytes to JS |
 | `ssh.respondPrompt` | `{promptId,value?,accepted?,cancelled?}` | `{accepted:true}`; answer one native-issued password/passphrase/host-key prompt, bound to its visible source and connection generation; reject stale/replayed IDs |
 | `workspace.local` | `{}` | `{accepted:true}`; return to native local IDE, with normal unsaved-work handling |
 | `app.about` | `{}` | `{accepted:true}`; native About dialog |
 
-Directory requests must match the actual active profile/session generation;
-stale or disconnected requests fail without authenticating another host.
-Empty or `~` directory path means that account's home. Permit normal absolute
-remote paths, reject NULs, enforce entry/output bounds, retain the live session
-on listing errors. Browser browsing never reads remote file contents through
-this channel: normal Code OSS Explorer owns the chosen workspace's files.
+Workspace metadata must match the actual active profile/session generation.
+The adapter never browses remote directories or opens a folder itself. A new
+SSH connection opens an empty remote Code OSS window. The existing Explorer's
+Open Folder button, File menu and `workbench.action.files.openFolder` own the
+remote dialog, directory navigation, validation and workspace selection through
+the normal remote agent. Native Ready/history merely follows that result.
+
+The Remote Explorer contribution contains host management and connection status
+only. There is no custom folder tree, SFTP filesystem or replacement folder
+picker. Remote file operations, search, trust, Git and terminals use existing
+Code OSS services for the selected remote workspace.
 
 The config editor URI is exactly `vstab-ssh-config:/config`. The extension's
 FileSystemProvider exposes that one file, supports stat/read/write/watch, and

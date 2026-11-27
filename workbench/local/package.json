@@ -1,8 +1,13 @@
 {
-  "name": "vstab-local-workbench-tools",
+  "name": "vstab-workbench-tools",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "scripts": { "build": "node build.mjs", "test": "node --test bridge.test.mjs" },
-  "devDependencies": { "esbuild": "0.28.2", "ignore": "7.0.5" }
+  "scripts": {
+    "build": "node ../controls/build.mjs",
+    "test": "node --test ../controls/*.test.*"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
 }

@@ -1,47 +1,53 @@
-# Codex extension compatibility
+# Codex and Claude extension compatibility
 
-vstab installs extensions through the Code OSS Extensions view. Codex is a
-separate publisher extension; it is not bundled in the APK.
+Install the publisher extensions through the Code OSS Extensions view:
+`openai.chatgpt` for Codex and `Anthropic.claude-code` for Claude Code. Neither
+extension is bundled in the APK. Workspace Trust and publisher-trust decisions
+remain part of the normal installation and activation flow.
 
-The developer inspection pin for `openai.chatgpt` is in
-[`extensions/codex/linux-x64.lock.json`](../extensions/codex/linux-x64.lock.json).
-It selects the stable Linux x64 package. Package identity, version and checksum
-are inspection inputs, not a claim that the extension has passed Android or
-provider authentication tests.
+## Backend requirements
 
-## Inspect the pinned package
+The developer inspection packages target Linux x64 and include native helpers.
+Evaluate those packages in a matching Linux x64 SSH workspace. A successful
+extension installation does not establish that its desktop helper binaries run
+under Android's Bionic runtime. Other host architectures and Android-compatible
+packages require separate checks.
+
+The publisher's own sidebar is distinct from Code OSS's generic Chat view.
+Opening a sign-in panel establishes only that panel's activation. Provider
+authentication, model requests, edits and approvals need their own end-to-end
+validation. Local Android helper execution and physical tablet behavior are
+not established by the package inspection tools.
+
+## Pinned package inspection
+
+The inspection inputs record publisher, version, target platform and checksum:
+
+- [Codex Linux x64 lock](../extensions/codex/linux-x64.lock.json)
+- [Claude Code Linux x64 lock](../extensions/claude/linux-x64.lock.json)
 
 ```sh
 python3 scripts/codex-package.py --download --inspect
+python3 scripts/claude-package.py --download --inspect
 ```
 
-The helper verifies the publisher VSIX against the pinned SHA-256 and checks
-its manifest identity. Downloads and extracted inspection reports stay in
-ignored `.local/` directories. It does not install, execute or authenticate the
-extension. Inspect the package's own license before redistribution.
-
-## Runtime boundary
-
-The pinned package has a Node extension entry point and Linux native helpers.
-Use a matching Linux x64 SSH workspace to evaluate that package. Its installability
-in the gallery does not establish that desktop helper binaries run under
-Android's Bionic runtime. Qualify other host architectures and Android-compatible
-packages separately.
+These helpers verify the publisher VSIX against its pinned SHA-256 and inspect
+the manifest. Downloads and inspection reports stay under ignored `.local/`
+directories. They do not install, execute or authenticate either extension, and
+do not read provider credentials. Gallery versions may differ from the pins;
+record the version actually installed when validating the app. Review each
+package's own license before redistribution.
 
 ## Verify in the app
 
-1. Connect to a controlled Linux SSH workspace through the normal vstab UI.
-2. Search `@id:openai.chatgpt` in Extensions and install the publisher extension.
-   Record the version actually installed; stable and prerelease gallery versions
-   can differ from the developer inspection pin.
-3. Review workspace and publisher trust prompts for that controlled project.
-4. Open **Codex: Open Codex Sidebar**. Verify its graphical panel, extension-host
-   activation and native helper process, including after reconnection.
-5. Test the user's chosen provider sign-in flow, a model request, edits and
-   approvals separately. A rendered sign-in panel proves only that panel's
-   activation.
+1. Connect to a controlled Linux SSH workspace through vstab.
+2. Search the exact extension ID in Extensions and install the publisher package.
+3. Review the workspace and publisher-trust prompts for that project.
+4. Open the extension's graphical sidebar and check extension-host activation
+   and the native helper process, including after SSH reconnect.
+5. Exercise the chosen provider sign-in flow, a model request, an edit and any
+   approval flow required for the intended use.
 
-Record APK identity, host architecture, installed package identity, logs and
-captures under ignored `artifacts/`. Keep credentials out of reports. Follow
-[the demonstration guide](DEMONSTRATION.md) for broader local and SSH checks;
-physical-tablet behavior needs its own evidence.
+Keep the APK identity, host architecture, installed package identity and results
+with local validation records under ignored `artifacts/`. Keep credentials and
+authentication responses out of those records.

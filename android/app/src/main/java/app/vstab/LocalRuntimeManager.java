@@ -163,6 +163,7 @@ final class LocalRuntimeManager {
             link(new File(backend, "lib/vscode/node"), node);
             File home = new File(context.getFilesDir(), "home"); ensureDirectory(home);
             File workspace = new File(context.getFilesDir(), "workspaces/default"); ensureDirectory(workspace);
+            initializeWorkspace(workspace);
             File state = new File(home, ".local/share/vstab/user-data"); ensureDirectory(state);
             ensureDirectory(new File(state, "extensions"));
             File temporary = new File(context.getCacheDir(), "native-tmp"); ensureDirectory(temporary);
@@ -410,6 +411,17 @@ final class LocalRuntimeManager {
         if (value.indexOf('{') >= 0 || value.indexOf('}') >= 0) throw new IOException("Unknown native runtime argument placeholder.");
         return value;
     }
+    private void initializeWorkspace(File directory) throws IOException {
+        File initialized = new File(context.getFilesDir(), "local-workspace-initialized");
+        if (!initialized.exists()) {
+            File readme = new File(directory, "README.md");
+            if (!readme.exists()) Files.write(readme.toPath(), ("# Your vstab workspace\n\nThese files are saved privately on this Android device.\n\nThe on-device Node runtime runs local terminals and extensions. Use **Remote-SSH: Connect to Host...** for a remote Linux workspace.\n").getBytes(StandardCharsets.UTF_8));
+            File example = new File(directory, "hello.js");
+            if (!example.exists()) Files.write(example.toPath(), "console.log('Hello from vstab');\n".getBytes(StandardCharsets.UTF_8));
+            Files.write(initialized.toPath(), new byte[]{1});
+        }
+    }
+
     private static void ensureDirectory(File directory) throws IOException { if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("Cannot create the native runtime directory. Free device storage and retry."); }
     private static void link(File link, File target) throws Exception { ensureDirectory(link.getParentFile()); Files.deleteIfExists(link.toPath()); Os.symlink(target.getAbsolutePath(), link.getAbsolutePath()); }
     private static String encode(String text) throws java.io.UnsupportedEncodingException { return URLEncoder.encode(text, "UTF-8"); }

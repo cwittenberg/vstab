@@ -8,10 +8,10 @@ function fixture(options = {}) {
   const pty = {spawn(shell, args, config) {
     const child = {pid: 431 + spawned.length, writes: [], sizes: [], killed: false,
       onData(fn) { this.data = fn; }, onExit(fn) { this.exit = fn; },
-      write(data) { this.writes.push(data); }, resize(cols, rows) { this.sizes.push([cols, rows]); }, kill() { this.killed = true; }};
+      write(data) { this.writes.push(data); }, resize(cols, rows) { this.sizes.push([cols, rows]); }, kill(signal) { this.killed = signal; if (!options.noExit) queueMicrotask(() => this.exit({exitCode: 137})); }};
     spawned.push({shell, args, config, child}); return child;
   }};
-  return {spawned, manager: new SessionManager({pty, shell: '/bin/bash', cwd: '/projects/α', env: {HOME: '/home/test'}, ...options})};
+  return {spawned, manager: new SessionManager({pty, shell: '/bin/bash', cwd: '/projects/α', env: {HOME: '/home/test'}, terminate: child => child.kill('SIGKILL'), ...options})};
 }
 
 test('create/input identities prevent duplicate shells and duplicate command delivery', () => {
@@ -40,7 +40,7 @@ test('rename and resize retain process; exit retains transcript; only explicit s
   manager.stop({sessionId: session.id}); assert.deepEqual(manager.list(), []);
 });
 
-test('resource bounds, Unicode replay boundaries and invalid requests', () => {
+test('resource bounds, Unicode replay boundaries and invalid requests', async () => {
   const {manager, spawned} = fixture({maxSessions: 1, replayLimit: 5});
   const session = manager.create({name: 'Shell', cols: 80, rows: 24});
   spawned[0].child.data('hello🌱abcd');
@@ -49,7 +49,33 @@ test('resource bounds, Unicode replay boundaries and invalid requests', () => {
   assert.throws(() => manager.input({sessionId: session.id, inputId: crypto.randomUUID(), data: 'x'.repeat(17000)}), /Invalid terminal input/);
   for (const name of ['', '\nunsafe', 'x'.repeat(81)]) assert.throws(() => validName(name));
   for (const size of [[1, 20], [80, 0], [501, 10], [80.5, 10]]) assert.throws(() => dimensions(...size));
-  manager.stop({sessionId: session.id}); assert.equal(spawned[0].child.killed, true);
+  await manager.stop({sessionId: session.id}); assert.equal(spawned[0].child.killed, 'SIGKILL');
   assert.notEqual(namespace('/project/a', '/home/x'), namespace('/project/b', '/home/x'));
   assert.notEqual(namespace('/project/a', '/home/x'), namespace('/project/a', '/home/y'));
+});
+
+
+test('Stop retains the live session until actual exit, shares acknowledgements and rejects input', async () => {
+  const {manager, spawned} = fixture({noExit: true});
+  const session = manager.create({name: 'Ignored HUP', cols: 80, rows: 24});
+  const stopped = []; manager.on('stopped', event => stopped.push(event.sessionId));
+  const first = manager.stop({sessionId: session.id});
+  const second = manager.stop({sessionId: session.id});
+  assert.equal(first, second); assert.equal(spawned[0].child.killed, 'SIGKILL');
+  assert.equal(manager.list()[0].stopping, true); assert.deepEqual(stopped, []);
+  assert.throws(() => manager.input({sessionId: session.id, inputId: crypto.randomUUID(), data: 'unsafe'}), /stopping/);
+  spawned[0].child.exit({exitCode: 137});
+  assert.deepEqual(await first, {stopped: true}); assert.deepEqual(manager.list(), []);
+  assert.deepEqual(stopped, [session.id]);
+});
+
+test('failed termination keeps an inspectable session and permits an explicit retry', async () => {
+  const {manager, spawned} = fixture({noExit: true, stopTimeoutMs: 15});
+  const session = manager.create({name: 'Retain on timeout', cols: 80, rows: 24});
+  await assert.rejects(manager.stop({sessionId: session.id}), /retained; try Stop again/);
+  assert.equal(manager.list().length, 1); assert.equal(manager.list()[0].stopping, false);
+  assert.match(manager.list()[0].stopError, /termination timed out/);
+  const retried = manager.stop({sessionId: session.id});
+  spawned[0].child.exit({exitCode: 137});
+  await retried; assert.deepEqual(manager.list(), []);
 });

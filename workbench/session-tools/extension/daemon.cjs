@@ -53,7 +53,7 @@ function startDaemon({directory, workspace, ptyModule, shell = process.env.SHELL
                 request.token.length !== token.length || !require('node:crypto').timingSafeEqual(Buffer.from(request.token), Buffer.from(token))) {
               socket.destroy(); return;
             }
-            client.authenticated = true; socket.setTimeout(0); write(client, {id: request.id, result: {version: 1}}); continue;
+            client.authenticated = true; socket.setTimeout(0); write(client, {id: request.id, result: {version: 2, pid: process.pid}}); continue;
           }
           const params = request.params || {};
           let result;
@@ -63,7 +63,9 @@ function startDaemon({directory, workspace, ptyModule, shell = process.env.SHELL
             case 'input': result = manager.input(params); break;
             case 'resize': result = manager.resize(params); break;
             case 'rename': result = manager.rename(params); break;
-            case 'stop': result = manager.stop(params); break;
+            case 'stop':
+              void manager.stop(params).then(result => write(client, {id: request.id, result}), error => write(client, {id: request.id, error: String(error.message).slice(0, 400)}));
+              continue;
             case 'attach': {
               const session = manager.get(params.sessionId); client.attached.add(session.id);
               write(client, {event: 'data', sessionId: session.id, data: session.replay, replay: true, sequence: session.sequence});

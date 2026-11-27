@@ -4,12 +4,12 @@ import test from 'node:test';
 import {MessageChannel} from 'node:worker_threads';
 import {createNativeControlIntegration} from './native-startup.mjs';
 
-function harness(origin = 'http://localhost:35721') {
+function harness(origin = 'http://localhost:35721', options = {}) {
   const listeners = new Set();
   const hostWindow = {location: {origin},
     addEventListener(type, listener) { if (type === 'message') listeners.add(listener); },
     removeEventListener(type, listener) { if (type === 'message') listeners.delete(listener); }};
-  const integration = createNativeControlIntegration({hostWindow, channelFactory: () => new MessageChannel()});
+  const integration = createNativeControlIntegration({hostWindow, channelFactory: () => new MessageChannel(), ...options});
   const worker = integration.options.messagePorts.get('vstab.android-controls');
   const natives = [];
   function attach(overrides = {}) {
@@ -17,7 +17,7 @@ function harness(origin = 'http://localhost:35721') {
     for (const listener of listeners) listener({data: 'vstab-ssh-ready', source: null, origin, ports: [channel.port1], ...overrides});
     return channel.port2;
   }
-  return {worker, attach, close() { integration.dispose(); worker.close(); for (const c of natives) { c.port1.close(); c.port2.close(); } }};
+  return {integration, worker, attach, close() { integration.dispose(); worker.close(); for (const c of natives) { c.port1.close(); c.port2.close(); } }};
 }
 const request = (id, method = 'ssh.getState', params = {}) => ({v: 1, id, method, params});
 
@@ -101,5 +101,80 @@ test('outstanding calls are bounded before the native handshake', async () => {
     const [message] = await overflow;
     assert.equal(message.id, 65);
     assert.equal(message.error.code, 'Unavailable');
+  } finally { h.close(); }
+});
+
+test('main-frame file calls use independent IDs and never expose response bytes to worker', async () => {
+  const h = harness();
+  try {
+    const native = h.attach();
+    let workerReplies = 0;
+    h.worker.on('message', () => workerReplies++);
+    const received = once(native, 'message');
+    const result = h.integration.request('files.read', {token: 'granted-document', offset: 0});
+    const call = JSON.parse((await received)[0]);
+    assert.ok(call.id > 2 ** 52);
+    assert.equal(call.method, 'files.read');
+    native.postMessage(JSON.stringify({v: 1, id: call.id, ok: true, result: {dataBase64: 'AAEC/w=='}}));
+    assert.deepEqual(await result, {dataBase64: 'AAEC/w=='});
+    await new Promise(resolve => setTimeout(resolve, 10));
+    assert.equal(workerReplies, 0);
+    await assert.rejects(h.integration.request('ssh.writeConfig', {}), /Unsupported/);
+    const blocked = once(h.worker, 'message');
+    h.worker.postMessage(request(1, 'files.read', {token: 'not-authorized'}));
+    assert.equal((await blocked)[0].error.code, 'NoPermissions');
+  } finally { h.close(); }
+});
+
+test('main-frame file calls reject on native session replacement', async () => {
+  const h = harness();
+  try {
+    const native = h.attach();
+    const received = once(native, 'message');
+    const operation = h.integration.request('files.downloadBegin', {name: 'data.bin', size: 4});
+    await received;
+    const rejected = assert.rejects(operation, {code: 'SessionChanged'});
+    h.attach();
+    await rejected;
+  } finally { h.close(); }
+});
+
+test('Explorer paste command stays in the main frame and shares no native token', async () => {
+  let pastes = 0;
+  const h = harness('http://localhost:35721', {pasteFromAndroid: async () => { pastes++; return {pasted: 2}; }});
+  try {
+    const native = h.attach();
+    let nativeCalls = 0;
+    native.on('message', () => nativeCalls++);
+    const reply = once(h.worker, 'message');
+    h.worker.postMessage(request(2, 'files.paste'));
+    assert.deepEqual((await reply)[0].result, {pasted: 2});
+    assert.equal(pastes, 1);
+    assert.equal(nativeCalls, 0);
+    const notice = once(h.worker, 'message');
+    h.integration.notify({kind: 'error', message: 'The file could not be saved.'});
+    assert.equal((await notice)[0].event, 'filesNotice');
+  } finally { h.close(); }
+});
+
+test('host controls reject custom directory browsing and only synchronize standard folder metadata', async () => {
+  const h = harness();
+  try {
+    const native = h.attach();
+    let response = once(h.worker, 'message');
+    h.worker.postMessage(request(10, 'ssh.listDirectory', {profileId: 'host', connectionId: 'session', path: '/'}));
+    assert.equal((await response)[0].error.code, 'NoPermissions');
+    response = once(h.worker, 'message');
+    h.worker.postMessage(request(11, 'ssh.openFolder', {profileId: 'host', connectionId: 'session', path: '/project', navigate: false}));
+    assert.equal((await response)[0].error.code, 'NoPermissions');
+    const received = once(native, 'message');
+    h.worker.postMessage(request(12, 'ssh.recordWorkspace', {profileId: 'host', connectionId: 'session', path: '/project'}));
+    const metadata = JSON.parse((await received)[0]);
+    assert.equal(metadata.method, 'ssh.recordWorkspace');
+    assert.equal(metadata.params.path, '/project');
+    assert.equal(Object.hasOwn(metadata.params, 'navigate'), false);
+    const emptyWindow = once(native, 'message');
+    h.worker.postMessage(request(13, 'ssh.recordWorkspace', {profileId: 'host', connectionId: 'session', path: ''}));
+    assert.equal(JSON.parse((await emptyWindow)[0]).params.path, '');
   } finally { h.close(); }
 });

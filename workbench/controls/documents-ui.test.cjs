@@ -9,7 +9,8 @@ const test = require('node:test');
 const plain = value => JSON.parse(JSON.stringify(value));
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-function harness(initial = {}, {folder = '/tablet/project', beforeNavigate = async () => true} = {}) {
+function harness(initial = {}, {folder = '/tablet/project', beforeNavigate = async () => true,
+    scheme = 'vscode-remote', authority = 'remote', hasWorkspace = true} = {}) {
   let state = {local: true, folderPath: folder, name: 'Project', message: 'Synchronized', conflicts: [], ...initial};
   const commands = new Map(), requests = [], executed = [], shown = [], warnings = [], information = [], errors = [];
   let pickResult, commandFailure, quickPick, decision, poll, cancelledTimer = false;
@@ -24,7 +25,7 @@ function harness(initial = {}, {folder = '/tablet/project', beforeNavigate = asy
   }};
   const vscode = {
     Uri: {from(value) { return {...value}; }}, StatusBarAlignment: {Left: 1},
-    workspace: {workspaceFolders: [{uri: {scheme: 'vscode-remote', authority: 'remote', path: folder}}]},
+    workspace: {workspaceFolders: hasWorkspace ? [{uri: {scheme, authority, path: folder}}] : undefined},
     commands: {
       registerCommand(id, callback) { commands.set(id, callback); return {dispose() { commands.delete(id); }}; },
       async executeCommand(id, ...args) { executed.push({id, args: plain(args)}); }
@@ -79,6 +80,55 @@ test('opens imported files using normal editor URIs once, without repeatedly ste
   h.setPick({local: true, folderPath: '/tablet/project', filePath: '/tablet/project/another.py'});
   await h.commands.get('vstab.documents.openFile')();
   assert.equal(h.shown.at(-1).path, '/tablet/project/another.py');
+});
+
+test('Open with and file-picker editor URIs match the resolved workspace file-watcher authority', async t => {
+  const file = '/tablet/project/app.js';
+  const h = harness({filePath: file}, {authority: 'localhost:35721'});
+  t.after(() => h.dispose()); await tick();
+  // Actual Android regression: vscode-remote://remote/... read and saved the
+  // same bytes, but events for vscode-remote://localhost:35721/... missed it.
+  const watcherUri = {scheme: 'vscode-remote', authority: 'localhost:35721', path: file};
+  assert.deepEqual(h.shown[0], watcherUri);
+  h.setPick({local: true, folderPath: '/tablet/project', filePath: '/tablet/project/other.js'});
+  await h.commands.get('vstab.documents.openFile')();
+  assert.deepEqual(h.shown.at(-1), {...watcherUri, path: '/tablet/project/other.js'});
+});
+
+test('shared-folder navigation and both conflict versions retain the active filesystem authority', async t => {
+  const h = harness({conflicts: [{path: 'app.js', recoveryPath: 'app.js.device-conflict-a1b2'}]}, {authority: '127.0.0.2:35721'});
+  t.after(() => h.dispose()); await tick();
+  h.setPick({local: true, folderPath: '/tablet/shared/工程 with spaces'});
+  await h.commands.get('vstab.documents.openFolder')();
+  assert.deepEqual(h.executed.at(-1), {id: 'vscode.openFolder', args: [
+    {scheme: 'vscode-remote', authority: '127.0.0.2:35721', path: '/tablet/shared/工程 with spaces'}, {forceNewWindow: false}
+  ]});
+  await h.commands.get('vstab.documents.review')();
+  const diff = h.executed.find(call => call.id === 'vscode.diff');
+  assert.deepEqual(diff.args.slice(0, 2), [
+    {scheme: 'vscode-remote', authority: '127.0.0.2:35721', path: '/tablet/project/app.js'},
+    {scheme: 'vscode-remote', authority: '127.0.0.2:35721', path: '/tablet/project/app.js.device-conflict-a1b2'}
+  ]);
+});
+
+test('an ordinary file workspace keeps its file provider when opening approved documents', async t => {
+  const h = harness({filePath: '/tablet/project/plain file.py'}, {scheme: 'file', authority: ''});
+  t.after(() => h.dispose()); await tick();
+  assert.deepEqual(h.shown, [{scheme: 'file', authority: '', path: '/tablet/project/plain file.py'}]);
+  h.setPick({local: true, folderPath: '/tablet/shared project'});
+  await h.commands.get('vstab.documents.openFolder')();
+  assert.deepEqual(h.executed.at(-1).args[0], {scheme: 'file', authority: '', path: '/tablet/shared project'});
+});
+
+test('no-folder and virtual-root navigation use only the configured bootstrap backend fallback', async t => {
+  for (const options of [{hasWorkspace: false}, {scheme: 'memfs', authority: 'unrelated-provider'}]) {
+    const h = harness({}, options); t.after(() => h.dispose()); await tick();
+    h.setPick({local: true, folderPath: '/tablet/approved project'});
+    await h.commands.get('vstab.documents.openFolder')();
+    assert.deepEqual(h.executed.at(-1).args[0], {scheme: 'vscode-remote', authority: 'remote', path: '/tablet/approved project'});
+    assert.equal(h.requests.filter(call => call.method === 'documents.pickFolder').length, 1);
+    assert.ok(!h.requests.some(call => call.method === 'documents.openApproved'));
+  }
 });
 
 test('local folder picker opens the approved project via Code OSS without asking native code to execute a path', async t => {

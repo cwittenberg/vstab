@@ -1,29 +1,42 @@
 # vstab
 
-Code OSS on Android tablets, with an on-device Node extension host, local terminal and built-in Remote SSH. The Android app bundles the workbench and native runtime; opening a local workspace does not require an SSH server or a hosted editor.
+Code OSS on Android tablets, with an on-device Node extension host, local
+terminal and built-in Remote SSH. The APK bundles the editor and native runtime,
+so local projects can open without an SSH server or hosted editor.
 
-The product is **vstab**. The development directory may still be named `vspad`.
+Android System WebView renders the Code OSS interface. Local files, extensions,
+Git and terminals use the Android/Bionic backend; SSH workspaces use a matching
+Linux backend through native SSH. The app also supports Android file
+upload/download, shared-document save-back, optional workspace windows, named
+persistent terminals and extension activation diagnostics.
 
-This is an early implementation. Source and build checks do not establish physical tablet qualification or compatibility with every desktop extension. See the [implementation target](TARGET.md) and [verification procedure](docs/DEMONSTRATION.md) for the required app journeys and remaining proof boundaries.
+This is an early implementation. Physical tablet behavior, arbitrary desktop
+native extensions and authenticated AI workflows require separate validation.
+Android force-stop, reboot and device power policies can end local processes.
 
 ## Source layout
 
 | Directory | Contents |
 | --- | --- |
-| `android/` | Android application, native SSH transport, workspace/document integration and tests |
-| `workbench/` | Workbench source pins, embedding patches and first-party extensions |
-| `native-runtime/` | Android/Bionic runtime adaptations, native probes and third-party notices |
+| `android/` | Android app, native SSH, file integration and tests |
+| `workbench/` | Workbench pins, embedding patch and first-party extensions |
+| `native-runtime/` | Android runtime adaptations, probes and vendor notices |
 | `server/` | Pinned Linux SSH backend bootstrap |
 | `scripts/` | Dependency preparation and APK asset packaging |
-| `tools/` | Android build, emulator and UI verification tools |
+| `tools/` | Android build, emulator and verification tools |
 | `demo/` | Isolated Linux SSH test fixture |
-| `release/` | Source dependency locks and generated local reports |
+| `release/` | Dependency locks; generated reports are ignored |
 
-Downloaded dependencies, SDKs, credentials, generated assets, APKs and test captures belong in ignored local/build directories. Keep the source pins, lockfiles, patches and license notices needed to reproduce the app.
+Downloads, SDKs, credentials and generated assets stay under ignored `.local/`.
+APKs, captures and reports stay in ignored build, `dist/` or `artifacts/`
+directories. Source pins, lockfiles, patches and license notices are retained.
 
 ## Build
 
-Use a Linux x86_64 host with Python 3.12+, Node.js 24 and npm, Git, curl, `dpkg-deb`, `readelf`, JDK 17, Android SDK platform/build-tools 36 and Android NDK r28. Building downloads the pinned upstream dependencies; the resulting local environment is bundled in the APK.
+Use a Linux x86_64 host with Python 3.12+, Node.js 24 and npm, Git, curl,
+`dpkg-deb`, `readelf`, JDK 17, Android SDK platform/build-tools 36 and Android NDK
+r28. Allow network access and sufficient disk space for the pinned upstream
+sources, SDKs and native payloads. Run these commands from the repository root:
 
 ```sh
 export JAVA_HOME=/path/to/jdk17
@@ -41,25 +54,49 @@ python3 scripts/package-workbench.py
 ./tools/build-android.sh :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug
 ```
 
-The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Runtime preparation produces ARM64 device and x86_64 emulator payloads. See [Android behavior and setup](android/README.md), [runtime packaging](native-runtime/README.md) and [workbench provenance](workbench/SOURCES.md).
+The first backend packaging step prepares the addon sources; the second includes
+the completed native outputs. Both ARM64 device and x86_64 emulator payloads are
+packaged. The debug APK is
+`android/app/build/outputs/apk/debug/app-debug.apk`.
 
-## Focused checks
+See [Android setup](android/README.md), [runtime packaging](native-runtime/README.md)
+and [workbench provenance](workbench/SOURCES.md) for component details.
 
-After preparing the workbench above:
+## Checks
+
+After preparing the dependencies above:
 
 ```sh
-node --test workbench/local/bridge.test.mjs workbench/controls/*.test.* \
-  workbench/session-tools/*.test.cjs workbench/compatibility/test/*.test.cjs
+node --test workbench/controls/*.test.* workbench/session-tools/*.test.cjs \
+  workbench/compatibility/test/*.test.cjs
 python3 scripts/test-package-server-assets.py
 ./tools/build-android.sh :app:testDebugUnitTest :app:lintDebug
 ```
 
-Persistent-terminal integration tests require a compatible real `node-pty` binding and explicitly skip when one is unavailable. Android instrumentation and normal editor interactions are separate checks; follow [the verification procedure](docs/DEMONSTRATION.md) and [SSH fixture instructions](demo/README.md).
+Persistent-terminal integration tests require a real compatible `node-pty`
+binding and explicitly skip when unavailable. Android instrumentation is a
+separate check against an installed app/test APK pair; use
+`tools/run-android-instrumentation.py` to require a JUnit success result.
+[The SSH fixture](demo/README.md) provides an isolated backend for editor, save
+and terminal checks. Verify ordinary app interactions on the intended device,
+including offline save/restart, SSH reconnect and Android document write-back.
 
-## Architecture and limits
+## Documentation and licenses
 
-Android WebView renders the bundled Code OSS interface. Local files, Node extensions and terminals use the Android-native backend. SSH workspaces use a matching Linux backend through native SSH. There is no Termux app, guest operating system or CPU emulator on the device. See the [architecture](docs/VSTAB_PLAN.md) and [workspace features](docs/WORKSPACE_FEATURES.md).
+- [Architecture](docs/ARCHITECTURE.md)
+- [SSH configuration](docs/SSH_CONFIG.md) and [control protocol](docs/SSH_CONTROL_PROTOCOL.md)
+- [Android file transfers](docs/ANDROID_FILE_TRANSFERS.md)
+- [Windows, shared files, terminals and diagnostics](docs/WORKSPACE_FEATURES.md)
+- [Codex and Claude compatibility](docs/CODEX_COMPATIBILITY.md)
 
-Extensions must support their selected runtime. Desktop Linux native helpers do not automatically run on Android/Bionic. Provider-authenticated Codex/Claude operations, physical Xiaomi behavior and advanced SSH configurations need their own qualification. Android force-stop and reboot can end local processes.
+Extensions must support their selected backend. Linux native helpers do not
+automatically run on Android/Bionic. Codex and Claude Code are installed
+separately through the Extensions view; provider sign-in and completed model
+requests need their own validation.
 
-The workbench derives from Microsoft Code OSS through pinned code-server sources. Microsoft's proprietary Remote-SSH extension and VS Code server distribution are separate products. Existing third-party license notices are retained with their components; binary distribution must also satisfy the bundled runtime components' license requirements. [Product requirements](PRODUCT.md) and [source provenance](workbench/SOURCES.md) document the intended scope and dependencies.
+The workbench derives from Microsoft Code OSS through pinned code-server
+sources. Microsoft's proprietary Remote-SSH extension and VS Code server
+distribution are separate products. Retain the existing third-party notices
+and satisfy the bundled components' license and corresponding-source obligations
+when distributing binaries. [Source provenance](workbench/SOURCES.md) records
+the workbench inputs.

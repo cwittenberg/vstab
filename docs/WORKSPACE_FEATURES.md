@@ -65,9 +65,10 @@ reads are bounded, and this extension's own errors do not recursively warn.
 Helpers failing silently after successful activation and failures isolated to
 the browser extension host are outside this detector's coverage.
 
-## Proof
+## Validation
 
-[Acceptance target](WORKSPACE_FEATURES_TARGET.md) records the required user
-journeys. [Demonstration guide](DEMONSTRATION.md) describes how to capture the actual
-APK, tests, emulator flows and remaining hardware limits. Generated evidence
-stays under ignored `artifacts/`; it is not included in the source repository.
+Validate windows, terminal reconnection, shared-document write-back and extension
+warnings through the ordinary app UI on the intended device. The
+[isolated SSH fixture](../demo/README.md) supports remote editor and terminal
+checks. Keep APK identities, captures and generated reports under ignored
+`artifacts/`; source and unit checks alone do not establish device behavior.

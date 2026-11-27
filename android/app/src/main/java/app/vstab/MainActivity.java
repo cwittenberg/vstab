@@ -11,7 +11,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -45,8 +44,6 @@ import org.json.JSONArray;
 
 public class MainActivity extends Activity implements ConnectionController.Observer, LocalRuntimeManager.Observer {
     private static final int PICK_KEY = 51;
-    private static final int PICK_IMPORT = 52;
-    private static final int PICK_EXPORT = 53;
     private static final int PICK_HOST_KEY = 54;
     private static final int PICK_SHARED_FOLDER = 55;
     private static final int PICK_DOCUMENT = 56;
@@ -58,6 +55,7 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     private Consumer<JSONObject> approvedDocumentSuccess;
     private Consumer<NativeSshBridge.Failure> approvedDocumentFailure;
     private SharedDocumentManager documents;
+    private AndroidFileTransfers fileTransfers;
     private String sharedSessionId;
     private String sharedMessage = "";
     private String sharedFailure = "";
@@ -84,13 +82,9 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     private BundledWorkbench localBundle;
     private WebView localWeb;
     private View localSurface;
-    private LocalWorkspaceBridge localFiles;
     private boolean localMode;
     private boolean formOpen;
     private int formRevision;
-    private Consumer<org.json.JSONObject> documentSuccess;
-    private Consumer<String> documentFailure;
-    private String exportPath;
     private SavedHostStore savedHosts;
     private final java.util.Map<WebView, NativeSshBridge> sshBridges = new java.util.IdentityHashMap<>();
     private final java.util.concurrent.ExecutorService keyWorker = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -129,18 +123,10 @@ public class MainActivity extends Activity implements ConnectionController.Obser
         }
         runtime = ((VstabApplication) getApplication()).runtime();
         documents = ((VstabApplication) getApplication()).documents();
+        fileTransfers = new AndroidFileTransfers(this, source -> source == web && !formOpen
+                && source.isShown() && active != null && NativeSshBridge.matchesOrigin(source.getUrl(), active.origin));
         sharedSessionId = state == null ? null : state.getString("shared-session-id");
         connection.observe(this);
-        try {
-            localFiles = new LocalWorkspaceBridge(this);
-            localFiles.setUiActions(this::handleLocalAction);
-        }
-        catch (java.io.IOException error) {
-            new AlertDialog.Builder(this).setTitle("Local workspace unavailable")
-                    .setMessage("vstab could not create its private workspace. Free some device storage and reopen the app.")
-                    .setPositiveButton("Close", (dialog, which) -> finish()).show();
-            return;
-        }
         preferences = getSharedPreferences("last-profile", MODE_PRIVATE);
         try { savedHosts = new SavedHostStore(this); }
         catch (Exception error) { Toast.makeText(this, "SSH configuration could not be loaded: " + error.getMessage(), Toast.LENGTH_LONG).show(); }
@@ -216,6 +202,7 @@ public class MainActivity extends Activity implements ConnectionController.Obser
 
     private void showConnect() {
         cancelSshPrompt();
+        if (fileTransfers != null && web != null) fileTransfers.invalidate(web);
         formHostId = null;
         active = null;
         localMode = false;
@@ -389,8 +376,7 @@ public class MainActivity extends Activity implements ConnectionController.Obser
             formRevision++;
             bundled = localBundle; web = localWeb;
             root.removeAllViews(); root.addView(localSurface, new FrameLayout.LayoutParams(-1, -1));
-            localWeb.onResume();
-            publishSshState();
+            resumeCachedWorkbench(localWeb, ready.origin);
             return;
         }
         try { bundled = new BundledWorkbench(this, ready); }
@@ -400,6 +386,7 @@ public class MainActivity extends Activity implements ConnectionController.Obser
             onFailure("The bundled editor could not start: " + error.getMessage());
             return;
         }
+        if (!ready.localRuntime && web != null && web == localWeb) fileTransfers.invalidate(web);
         active = ready;
         localMode = ready.localRuntime;
         formOpen = false;
@@ -465,7 +452,8 @@ public class MainActivity extends Activity implements ConnectionController.Obser
                 openExternal(target); return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
-                if (view != web || active != selectedReady || !NativeSshBridge.matchesOrigin(url, origin)) return;
+                if (view != web || active == null || active.localRuntime != isLocal
+                        || !active.origin.equals(origin) || !NativeSshBridge.matchesOrigin(url, origin)) return;
                 String path = Uri.parse(url).getPath();
                 if (path != null && !path.isEmpty() && !path.equals("/") && !path.equals("/index.html")) return;
                 NativeSshBridge bridge = sshBridges.get(view);
@@ -477,12 +465,10 @@ public class MainActivity extends Activity implements ConnectionController.Obser
                 publishSshState();
             }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
-                String path = Uri.parse(url).getPath();
-                if (!NativeSshBridge.matchesOrigin(url, origin) || (path != null && !path.isEmpty()
-                        && !path.equals("/") && !path.equals("/index.html"))) {
-                    if (pendingSshPrompt != null && pendingSshPrompt.source == view) cancelSshPrompt();
-                    NativeSshBridge bridge = sshBridges.get(view); if (bridge != null) bridge.close();
-                }
+                fileTransfers.invalidate(view);
+                // Even a same-origin workbench reload replaces its JS context.
+                if (pendingSshPrompt != null && pendingSshPrompt.source == view) cancelSshPrompt();
+                NativeSshBridge bridge = sshBridges.get(view); if (bridge != null) bridge.close();
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) Toast.makeText(MainActivity.this,
@@ -491,6 +477,10 @@ public class MainActivity extends Activity implements ConnectionController.Obser
         });
         ((VstabApplication) getApplication()).registerWorkbench(windowId + (isLocal ? ":local" : ""), client);
         web.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView view, android.webkit.ValueCallback<Uri[]> callback,
+                                                       WebChromeClient.FileChooserParams params) {
+                return fileTransfers.showFileChooser(view, callback, params);
+            }
             @Override public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message message) {
                 WebView popup = new WebView(MainActivity.this);
                 popup.setWebViewClient(new WebViewClient() {
@@ -647,6 +637,31 @@ public class MainActivity extends Activity implements ConnectionController.Obser
         });
     }
 
+    private void resumeCachedWorkbench(WebView restored, String origin) {
+        restored.onResume();
+        restored.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override public void onGlobalLayout() {
+                android.view.ViewTreeObserver observer = restored.getViewTreeObserver();
+                if (observer.isAlive()) observer.removeOnGlobalLayoutListener(this);
+                if (web != restored || !restored.isAttachedToWindow() || !restored.isShown()) return;
+                restored.requestFocus(View.FOCUS_DOWN);
+                restored.requestApplyInsets();
+                notifyWorkbenchViewport(restored);
+                if (NativeSshBridge.matchesOrigin(restored.getUrl(), origin)) {
+                    NativeSshBridge bridge = sshBridges.get(restored);
+                    if (bridge == null) {
+                        bridge = new NativeSshBridge((method, params, success, failure) -> handleSshRequest(restored, method, params, success, failure));
+                        sshBridges.put(restored, bridge);
+                    }
+                    bridge.attach(restored, origin);
+                }
+                publishSshState();
+            }
+        });
+        root.requestApplyInsets();
+        restored.requestLayout();
+    }
+
     private void chooseKey() {
         Intent request = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
         request.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -655,6 +670,7 @@ public class MainActivity extends Activity implements ConnectionController.Obser
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (fileTransfers != null && fileTransfers.onActivityResult(request, result, data)) return;
         if (request == PICK_SHARED_FOLDER || request == PICK_DOCUMENT) {
             Consumer<JSONObject> success = approvedDocumentSuccess;
             Consumer<NativeSshBridge.Failure> failure = approvedDocumentFailure;
@@ -690,60 +706,12 @@ public class MainActivity extends Activity implements ConnectionController.Obser
             });
             return;
         }
-        if (request == PICK_IMPORT || request == PICK_EXPORT) {
-            Consumer<org.json.JSONObject> success = documentSuccess;
-            Consumer<String> failure = documentFailure;
-            documentSuccess = null; documentFailure = null;
-            if (success == null || failure == null) return;
-            if (result != RESULT_OK || data == null || data.getData() == null) {
-                try { success.accept(new org.json.JSONObject().put("cancelled", true)); }
-                catch (org.json.JSONException impossible) { failure.accept("The file selection was cancelled."); }
-                return;
-            }
-            Uri document = data.getData();
-            if (request == PICK_IMPORT) {
-                String filename = "imported-file";
-                try (android.database.Cursor cursor = getContentResolver().query(document, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
-                    if (cursor != null && cursor.moveToFirst()) filename = cursor.getString(0);
-                }
-                localFiles.importDocument(document, filename, success, failure);
-            } else localFiles.exportDocument(exportPath, document, success, failure);
-            return;
-        }
         if (request != PICK_KEY || result != RESULT_OK || data == null || data.getData() == null) return;
         keyUri = data.getData();
         try { getContentResolver().takePersistableUriPermission(keyUri, Intent.FLAG_GRANT_READ_URI_PERMISSION); }
         catch (SecurityException ignored) { }
         preferences.edit().putString("key-uri", keyUri.toString()).apply();
         pickKey.setText("SSH key selected — choose another");
-    }
-
-    private void handleLocalAction(String method, org.json.JSONObject params,
-                                   Consumer<org.json.JSONObject> success, Consumer<String> failure) {
-        if (method.equals("ssh.showConnections")) {
-            showConnect(); success.accept(new org.json.JSONObject()); return;
-        }
-        if (documentSuccess != null) { failure.accept("Finish the current Android file picker first."); return; }
-        Intent request;
-        int requestCode;
-        if (method.equals("local.import")) {
-            request = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
-            request.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            requestCode = PICK_IMPORT;
-        } else if (method.equals("local.export")) {
-            exportPath = params.optString("path");
-            if (!exportPath.startsWith("/workspace/")) { failure.accept("Open a local file before exporting it."); return; }
-            request = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/octet-stream").addCategory(Intent.CATEGORY_OPENABLE);
-            request.putExtra(Intent.EXTRA_TITLE, exportPath.substring(exportPath.lastIndexOf('/') + 1));
-            request.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            requestCode = PICK_EXPORT;
-        } else { failure.accept("This Android action is not available."); return; }
-        documentSuccess = success; documentFailure = failure;
-        try { startActivityForResult(request, requestCode); }
-        catch (ActivityNotFoundException unavailable) {
-            documentSuccess = null; documentFailure = null;
-            failure.accept("No Android document picker is available on this device.");
-        }
     }
 
     private void confirmDisconnect() {
@@ -820,6 +788,7 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     private void handleSshRequest(WebView source, String method, JSONObject params,
                                   Consumer<JSONObject> success, Consumer<NativeSshBridge.Failure> failure) {
         try {
+            if (method.startsWith("files.")) { fileTransfers.request(source, method, params, success, failure); return; }
             if (method.equals("documents.getState")) { success.accept(documentState()); return; }
             if (source == web && !formOpen && source.isShown()) {
                 if (method.equals("window.new")) {
@@ -871,24 +840,14 @@ public class MainActivity extends Activity implements ConnectionController.Obser
                 }
                 case "ssh.disconnect": case "workspace.local":
                     success.accept(new JSONObject().put("accepted", true)); postSshUi(source, this::disconnectToLocal); return;
-                case "ssh.listDirectory": {
+                case "ssh.recordWorkspace": {
                     requireSession(params);
-                    ConnectionController.Ready current = connection.current();
-                    connection.listDirectories(params.optString("path", ""), listing -> {
-                        try { success.accept(listing.toJson().put("home", current.home)); }
-                        catch (Exception error) { failure.accept(new NativeSshBridge.Failure("Unavailable", "The directory result could not be encoded.")); }
-                    }, error -> failure.accept(new NativeSshBridge.Failure("Unavailable", error))); return;
-                }
-                case "ssh.openFolder": {
-                    requireSession(params);
-                    connection.openFolder(params.getString("path"), changed -> {
-                        try {
-                            savedHosts.markConnected(changed.savedHostId, changed.folder);
-                            success.accept(new JSONObject().put("accepted", true));
-                            setSshPhase("connected", "Connected to " + changed.host);
-                            postSshUi(source, () -> openWorkbench(changed));
-                        } catch (Exception error) { failure.accept(new NativeSshBridge.Failure("Unavailable", error.getMessage())); }
-                    }, error -> failure.accept(new NativeSshBridge.Failure("Unavailable", error))); return;
+                    ConnectionController.Ready changed = connection.recordWorkspace(params.getString("path"));
+                    active = changed;
+                    savedHosts.markConnected(changed.savedHostId, changed.folder);
+                    success.accept(new JSONObject().put("accepted", true));
+                    setSshPhase("connected", "Connected to " + changed.host);
+                    return;
                 }
                 case "ssh.importKey": {
                     String id = params.getString("profileId");
@@ -979,11 +938,11 @@ public class MainActivity extends Activity implements ConnectionController.Obser
 
     private JSONObject documentState() throws Exception {
         JSONObject result = new JSONObject().put("message", sharedMessage).put("error", sharedFailure)
-                .put("local", localMode).put("openedFile", openedDocumentPath == null ? JSONObject.NULL : openedDocumentPath);
+                .put("local", localMode).put("openedFile", openedDocumentPath == null ? JSONObject.NULL : new java.io.File(openedDocumentPath).getCanonicalPath());
         SharedDocumentManager.Session session = sharedSessionId == null ? null : documents.session(sharedSessionId);
         if (session == null) return result;
-        result.put("sessionId", session.id).put("folderPath", session.directory.getAbsolutePath())
-                .put("filePath", session.documentFile == null ? JSONObject.NULL : session.documentFile.getAbsolutePath()).put("name", session.name);
+        result.put("sessionId", session.id).put("folderPath", session.directory.getCanonicalPath())
+                .put("filePath", session.documentFile == null ? JSONObject.NULL : session.documentFile.getCanonicalPath()).put("name", session.name);
         JSONArray conflicts = new JSONArray();
         for (DocumentSyncEngine.Conflict conflict : session.conflicts()) conflicts.put(new JSONObject()
                 .put("path", conflict.path).put("recoveryPath", conflict.recoveryPath));
@@ -1025,12 +984,12 @@ public class MainActivity extends Activity implements ConnectionController.Obser
             if (host == null) throw new java.io.IOException("This SSH host was removed from config.");
             if (host.user.isEmpty() || host.host.isEmpty()) {
                 showConnect(); formHostId = id; this.host.setText(host.host); port.setText(Integer.toString(host.port));
-                user.setText(host.user); folder.setText(host.folder); return;
+                user.setText(host.user); folder.setText(requestedFolder); return;
             }
             if (!host.configured.connectable) throw new java.io.IOException("This host has unsupported SSH configuration. Open its config diagnostics before connecting.");
-            String selectedFolder = requestedFolder.isEmpty() ? host.folder : requestedFolder;
-            if (!requestedFolder.isEmpty() && !host.recentFolders.contains(requestedFolder))
-                throw new IllegalArgumentException("This folder is no longer in the host's recent workspace list. Browse it after connecting.");
+            String selectedFolder = requestedFolder;
+            if (!requestedFolder.isEmpty() && !requestedFolder.startsWith("/") && !requestedFolder.equals("~") && !requestedFolder.startsWith("~/"))
+                throw new IllegalArgumentException("Use an absolute remote directory or ~/project.");
             java.util.List<Uri> keys = new java.util.ArrayList<>();
             java.util.List<String> methods = new java.util.ArrayList<>();
             String preferred = host.configured.preferredAuthentications;
@@ -1088,10 +1047,14 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     }
 
     private void destroyWorkbench(WebView target) {
+        if (fileTransfers != null) fileTransfers.invalidate(target);
         if (pendingSshPrompt != null && pendingSshPrompt.source == target) cancelSshPrompt();
         NativeSshBridge bridge = sshBridges.remove(target);
         if (bridge != null) bridge.close();
-        target.loadUrl("about:blank"); target.destroy();
+        android.view.ViewParent parent = target.getParent();
+        if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(target);
+        target.stopLoading();
+        target.destroy();
     }
 
     private boolean requestSshPrompt(JSONObject prompt, Consumer<JSONObject> callback) {
@@ -1243,15 +1206,15 @@ public class MainActivity extends Activity implements ConnectionController.Obser
 
     @Override protected void onDestroy() {
         cancelSshPrompt();
+        if (fileTransfers != null) fileTransfers.close();
         if (connection != null) connection.unobserve(this);
         if (runtime != null) runtime.unobserve(this);
         if (configObserver != null) configObserver.stopWatching();
         for (NativeSshBridge bridge : sshBridges.values()) bridge.close();
         sshBridges.clear();
         keyWorker.shutdown();
-        if (web != null && web != localWeb) web.destroy();
-        if (localWeb != null) localWeb.destroy();
-        if (localFiles != null) localFiles.closePort();
+        if (web != null && web != localWeb) destroyWorkbench(web);
+        if (localWeb != null) destroyWorkbench(localWeb);
         if (documents != null) for (SharedDocumentManager.Listener listener : documentListeners) documents.removeListener(listener);
         web = null; localWeb = null;
         if (isFinishing() && windowId != null) ((VstabApplication) getApplication()).closeWindow(windowId);

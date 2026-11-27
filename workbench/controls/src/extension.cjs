@@ -3,19 +3,29 @@ const vscode = require('vscode');
 const {NativeClient} = require('./native-client.js');
 const CONFIG = vscode.Uri.parse('vstab-ssh-config:/config');
 const busy = new Set(['connecting', 'verifying-host', 'authenticating', 'preparing', 'reconnecting', 'disconnecting']);
-const basename = path => path === '/' ? '/' : path.replace(/\/+$/, '').split('/').pop();
 
 function activate(context) {
   const native = new NativeClient(context);
+  context.subscriptions.push(vscode.commands.registerCommand('vstab.files.paste', async () => {
+    try { await native.request('files.paste'); }
+    catch (error) { await vscode.window.showErrorMessage(error.message || 'Android file paste failed.'); }
+  }));
+  context.subscriptions.push(native.onEvent(event => {
+    if (event.event !== 'filesNotice' || typeof event.message !== 'string') return;
+    if (event.kind === 'error') void vscode.window.showErrorMessage(event.message);
+    else void vscode.window.showInformationMessage(event.message);
+  }));
   require('../extension/documents-ui.js').registerDocumentCommands(vscode, context, native, closeDirtyEditors);
+  const remoteWindow = /^127\.0\.0\.[1-4](?::|$)/.test(context.extensionUri.authority);
+  void vscode.commands.executeCommand('setContext', 'vstab.ssh.remoteWindow', remoteWindow);
   const changed = new vscode.EventEmitter();
   const fileChanged = new vscode.EventEmitter();
   const diagnostics = vscode.languages.createDiagnosticCollection('vstab-ssh-config');
   const status = vscode.window.createStatusBarItem('vstab.ssh.connection', vscode.StatusBarAlignment.Left, 99);
   status.command = 'vstab.ssh.showHosts';
   let state = {profiles: [], connection: {phase: 'disconnected'}};
-  let signature = '', initial, lastReadRevision, configRevision, disposed = false;
-  const directories = new Map(), prompts = new Set();
+  let signature = '', initial, lastReadRevision, configRevision, disposed = false, syncingFolder = false, synchronizedFolder = '';
+  const prompts = new Set();
   const profileFor = value => typeof value === 'string' ? state.profiles.find(p => p.id === value) : value?.profile || (value?.id ? value : undefined);
   const activeFor = profile => state.connection.phase === 'connected' && state.connection.profileId === profile.id;
   const detail = profile => `${profile.user || 'user'}@${profile.hostname}:${profile.port || 22}`;
@@ -30,8 +40,8 @@ function activate(context) {
     if (!next || !Array.isArray(next.profiles) || !next.connection) return;
     const nextSignature = JSON.stringify(next);
     if (nextSignature === signature) return;
-    if (state.connection.connectionId !== next.connection.connectionId) directories.clear();
     signature = nextSignature; state = next; setDiagnostics(next.config);
+    void vscode.commands.executeCommand('setContext', 'vstab.ssh.connected', next.connection.phase === 'connected');
     const connection = next.connection;
     const profile = next.profiles.find(p => p.id === connection.profileId);
     const alias = profile?.alias || connection.profileId || 'host';
@@ -45,61 +55,41 @@ function activate(context) {
     } else status.hide();
     status.tooltip = connection.message || (connection.phase === 'connected' ? `SSH: ${alias} · Connected` : 'Remote SSH');
     changed.fire();
+    synchronizeWorkspaceFolder();
   }
-  async function refresh() { directories.clear(); update(await native.request('ssh.getState')); changed.fire(); }
-  async function list(profile, path) {
-    if (!activeFor(profile)) throw new Error('Connect to this host before browsing its directories.');
-    const key = `${state.connection.connectionId}:${path}`, cached = directories.get(key);
-    if (cached && Date.now() - cached.time < 10000) return cached.value;
-    const value = await native.request('ssh.listDirectory', {profileId: profile.id, connectionId: state.connection.connectionId, path});
-    if (directories.size >= 128) directories.delete(directories.keys().next().value);
-    directories.set(key, {time: Date.now(), value}); return value;
+  function synchronizeWorkspaceFolder() {
+    if (!remoteWindow) return;
+    const folder = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const path = folder?.scheme === 'vscode-remote' ? folder.path : (!folder && remoteWindow ? '' : undefined);
+    if (syncingFolder || disposed || state.connection.phase !== 'connected' ||
+        path === undefined || path === state.connection.folder) return;
+    const key = `${state.connection.connectionId}:${path}`;
+    if (key === synchronizedFolder) return;
+    synchronizedFolder = key;
+    syncingFolder = true;
+    void native.request('ssh.recordWorkspace', {profileId: state.connection.profileId,
+      connectionId: state.connection.connectionId, path})
+      .then(() => native.request('ssh.getState')).then(update).catch(showError)
+      .finally(() => { syncingFolder = false; });
   }
-  const tree = vscode.window.createTreeView('vstab.sshTargets', {showCollapseAll: true, treeDataProvider: {
+  async function refresh() { update(await native.request('ssh.getState')); changed.fire(); }
+  const tree = vscode.window.createTreeView('vstab.sshTargets', {treeDataProvider: {
     onDidChangeTreeData: changed.event,
     async getChildren(node) {
-      if (!node) { await initial; return state.profiles.map(profile => ({kind: 'host', profile})); }
-      const profile = node.profile;
-      if (node.kind === 'host') {
-        const items = (profile.recentFolders || []).map(path => ({kind: 'recent', profile, path}));
-        if (activeFor(profile)) {
-          items.push({kind: 'directory', profile, path: state.connection.home || '/', label: 'Home'});
-          if (state.connection.home !== '/') items.push({kind: 'directory', profile, path: '/', label: 'Filesystem'});
-        } else items.push({kind: 'connect', profile});
-        return items;
-      }
-      if (node.kind === 'directory' || node.kind === 'recent') {
-        const result = await list(profile, node.path);
-        const hidden = vscode.workspace.getConfiguration('vstab.ssh').get('showHiddenFolders', false);
-        const items = (result.directories || []).filter(entry => hidden || !entry.name.startsWith('.'))
-          .map(entry => ({kind: 'directory', profile, path: entry.path, label: entry.name}));
-        if (result.truncated) items.push({kind: 'notice', profile, label: 'More folders exist. Use Open Folder to enter a path.'});
-        return items;
-      }
-      return [];
+      if (node) return [];
+      await initial;
+      return state.profiles.map(profile => ({profile}));
     },
     getTreeItem(node) {
       const profile = node.profile;
-      if (node.kind === 'host') {
-        const active = state.connection.profileId === profile.id, phase = active ? state.connection.phase : 'disconnected';
-        const item = new vscode.TreeItem(profile.alias || profile.hostname, vscode.TreeItemCollapsibleState.Collapsed);
-        item.id = `host:${profile.id}`;
-        item.description = phase === 'connected' ? 'Connected' : phase === 'error' ? 'Connection failed' : busy.has(phase) ? phase.replaceAll('-', ' ') : detail(profile);
-        item.tooltip = `${profile.alias}\n${detail(profile)}\n${active ? state.connection.message || phase : 'Disconnected'}\n${profile.hasIdentity ? 'Private key configured' : 'Password or configured SSH authentication'}`;
-        item.iconPath = new vscode.ThemeIcon(busy.has(phase) ? 'sync~spin' : phase === 'error' || profile.connectable === false ? 'warning' : 'vm',
-          phase === 'connected' ? new vscode.ThemeColor('testing.iconPassed') : undefined);
-        item.contextValue = phase === 'connected' ? 'sshHostConnected' : phase === 'error' ? 'sshHostError' : 'sshHost'; return item;
-      }
-      if (node.kind === 'connect') {
-        const item = new vscode.TreeItem('Connect to browse folders'); item.iconPath = new vscode.ThemeIcon('plug');
-        item.command = {command: 'vstab.ssh.connect', title: 'Connect to Host', arguments: [node]}; return item;
-      }
-      const folder = node.kind === 'directory' || node.kind === 'recent';
-      const item = new vscode.TreeItem(node.label || basename(node.path), folder && activeFor(profile) ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
-      item.id = `${node.kind}:${profile.id}:${node.path || node.label}`; item.description = node.kind === 'recent' ? node.path : undefined;
-      item.tooltip = node.path || node.label; item.iconPath = new vscode.ThemeIcon(folder ? node.kind === 'recent' ? 'folder-opened' : 'folder' : 'info');
-      item.contextValue = folder ? 'sshFolder' : 'sshNotice';
-      if (node.kind === 'recent') item.command = {command: 'vstab.ssh.openFolder', title: 'Open Folder', arguments: [node]};
+      const active = state.connection.profileId === profile.id, phase = active ? state.connection.phase : 'disconnected';
+      const item = new vscode.TreeItem(profile.alias || profile.hostname, vscode.TreeItemCollapsibleState.None);
+      item.id = `host:${profile.id}`;
+      item.description = phase === 'connected' ? 'Connected' : phase === 'error' ? 'Connection failed' : busy.has(phase) ? phase.replaceAll('-', ' ') : `Disconnected · ${detail(profile)}`;
+      item.tooltip = `${profile.alias}\n${detail(profile)}\n${active ? state.connection.message || phase : 'Disconnected'}\n${profile.hasIdentity ? 'Private key configured' : 'Password or configured SSH authentication'}`;
+      item.iconPath = new vscode.ThemeIcon(busy.has(phase) ? 'sync~spin' : phase === 'error' || profile.connectable === false ? 'warning' : 'vm',
+        phase === 'connected' ? new vscode.ThemeColor('testing.iconPassed') : undefined);
+      item.contextValue = phase === 'connected' ? 'sshHostConnected' : phase === 'error' ? 'sshHostError' : 'sshHost';
       return item;
     }
   }});
@@ -158,30 +148,21 @@ function activate(context) {
     const choice = await vscode.window.showInformationMessage('SSH host added to ~/.ssh/config.', 'Connect', 'Open Config');
     if (choice === 'Connect') await connect(result.profileId); if (choice === 'Open Config') await openConfig(result.profileId);
   }
-  async function connect(value, path) {
+  async function connect(value) {
     const profile = await chooseHost(value); if (!profile) return;
     if (profile.connectable === false) { await openConfig(profile); throw new Error(profile.diagnostics?.map(item => item.message).join('\n') || 'Fix this host’s SSH configuration before connecting.'); }
-    if (activeFor(profile) && !path) return vscode.commands.executeCommand('workbench.view.explorer');
-    if (await closeDirtyEditors()) await native.request('ssh.connect', {profileId: profile.id, ...(path ? {path} : {})});
+    if (activeFor(profile)) return vscode.commands.executeCommand('workbench.view.explorer');
+    if (await closeDirtyEditors()) await native.request('ssh.connect', {profileId: profile.id});
   }
-  async function openFolder(node) {
-    const profile = await chooseHost(node); if (!profile) return;
-    if (!activeFor(profile)) return connect(profile, node?.path);
-    const path = node?.path || await pickFolder(profile); if (!path || !await closeDirtyEditors()) return;
-    await native.request('ssh.openFolder', {profileId: profile.id, connectionId: state.connection.connectionId, path});
-  }
-  async function pickFolder(profile) {
-    let path = state.connection.folder || state.connection.home || '~';
-    while (true) {
-      const result = await vscode.window.withProgress({location: vscode.ProgressLocation.Window, title: `Reading ${profile.alias}:${path}`}, () => list(profile, path));
-      const items = [{label: '$(folder-opened) Open this folder', description: result.path, action: 'open'}, {label: '$(edit) Enter a folder path...', action: 'path'}];
-      if (result.parent && result.parent !== result.path) items.push({label: '$(arrow-up) ..', path: result.parent});
-      items.push({label: 'Folders', kind: vscode.QuickPickItemKind.Separator}, ...(result.directories || []).map(entry => ({label: `$(folder) ${entry.name}`, path: entry.path})));
-      const item = await vscode.window.showQuickPick(items, {title: `Open Folder on ${profile.alias}`, placeHolder: result.path, matchOnDescription: true});
-      if (!item) return; if (item.action === 'open') return result.path;
-      if (item.action === 'path') { const entered = await vscode.window.showInputBox({title: `Folder on ${profile.alias}`, value: result.path, prompt: 'Enter an absolute remote directory or ~/path', ignoreFocusOut: true}); if (entered) path = entered; }
-      else path = item.path;
+  async function openStandardFolder(value) {
+    const profile = profileFor(value);
+    if (state.connection.phase === 'connected' && (!profile || activeFor(profile))) {
+      // The same command used by VS Code's File menu and Explorer Open Folder.
+      // Core owns the remote file dialog, filesystem, trust and workspace switch.
+      return vscode.commands.executeCommand('workbench.action.files.openFolder');
     }
+    const selected = await chooseHost(value);
+    if (selected) await connect(selected);
   }
   async function answerPrompt(prompt) {
     if (!prompt?.id || prompts.has(prompt.id)) return; prompts.add(prompt.id);
@@ -200,11 +181,15 @@ function activate(context) {
   const commands = {
     'vstab.ssh.connect': connect, 'vstab.ssh.addHost': addHost, 'vstab.ssh.openConfig': openConfig, 'vstab.ssh.editHost': openConfig,
     'vstab.ssh.refresh': refresh, 'vstab.ssh.showHosts': () => vscode.commands.executeCommand('workbench.view.extension.vstab-remote-explorer'),
-    'vstab.ssh.browse': openFolder, 'vstab.ssh.openFolder': openFolder,
+    'vstab.ssh.browse': openStandardFolder,
     'vstab.ssh.importKey': async value => { const profile = await chooseHost(value); if (profile && await saveDirtyConfig()) await native.request('ssh.importKey', {profileId: profile.id}); },
     'vstab.ssh.removeHost': async value => { const profile = await chooseHost(value); if (!profile || !await saveDirtyConfig()) return;
       if (await vscode.window.showWarningMessage(`Remove SSH host “${profile.alias}” from ~/.ssh/config?`, {modal: true}, 'Remove') === 'Remove') { update(await native.request('ssh.removeHost', {profileId: profile.id})); await refresh(); } },
-    'vstab.ssh.reconnect': async value => { const profile = await chooseHost(value); if (profile && await closeDirtyEditors()) await native.request('ssh.reconnect', {profileId: profile.id}); },
+    'vstab.ssh.reconnect': async value => {
+      const profile = await chooseHost(value), folder = vscode.workspace.workspaceFolders?.[0]?.uri;
+      if (profile && await closeDirtyEditors()) await native.request('ssh.reconnect', {profileId: profile.id,
+        ...(remoteWindow && folder?.scheme === 'vscode-remote' ? {path: folder.path} : {})});
+    },
     'vstab.ssh.disconnect': async () => { if (await closeDirtyEditors()) await native.request('ssh.disconnect'); },
     'vstab.workspace.local': async () => { if (await closeDirtyEditors()) await native.request('workspace.local'); },
     'vstab.about': () => native.request('app.about')
@@ -215,6 +200,7 @@ function activate(context) {
     if (event.event === 'configChanged' && event.revision !== configRevision) { configRevision = event.revision; fileChanged.fire([{type: vscode.FileChangeType.Changed, uri: CONFIG}]); void refresh().catch(() => {}); }
     if (event.event === 'sshPrompt') void answerPrompt(event.prompt);
   }));
+  context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(synchronizeWorkspaceFolder));
   context.subscriptions.push(vscode.languages.registerCompletionItemProvider('ssh_config', {provideCompletionItems() {
     return ['Host', 'HostName', 'User', 'Port', 'IdentityFile', 'IdentitiesOnly', 'PreferredAuthentications', 'Include'].map(keyword => new vscode.CompletionItem(keyword, vscode.CompletionItemKind.Keyword));
   }}));

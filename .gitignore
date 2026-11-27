@@ -25,11 +25,8 @@ __pycache__/
 .env.*
 !.env.example
 
-# Browser bundles and copied notices are rebuilt from maintained sources.
+# Browser bundle rebuilt from maintained source.
 /workbench/controls/extension/extension.js
-/workbench/local/extension/extension.js
-/workbench/local/extension/UPSTREAM-LICENSE.txt
-/workbench/local/extension/IGNORE-LICENSE.txt
 
 # Generated build/qualification reports; source input locks remain tracked.
 /release/android-addons.lock.json

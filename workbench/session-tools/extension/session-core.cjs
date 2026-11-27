@@ -1,6 +1,7 @@
 'use strict';
 const {EventEmitter} = require('node:events');
 const crypto = require('node:crypto');
+const {terminatePty} = require('./terminate-pty.cjs');
 const MAX_SESSIONS = 12;
 const MAX_REPLAY = 256 * 1024;
 const MAX_INPUT = 16 * 1024;
@@ -24,15 +25,17 @@ function namespace(workspace, home) {
 
 /** Owns PTYs independently of editor/extension connections. Never reruns commands. */
 class SessionManager extends EventEmitter {
-  constructor({pty, shell, cwd, env, maxSessions = MAX_SESSIONS, replayLimit = MAX_REPLAY}) {
+  constructor({pty, shell, cwd, env, maxSessions = MAX_SESSIONS, replayLimit = MAX_REPLAY, stopTimeoutMs = 5000, terminate = terminatePty}) {
     super();
     this.pty = pty; this.shell = shell; this.cwd = cwd; this.env = env;
     this.sessions = new Map(); this.maxSessions = maxSessions; this.replayLimit = replayLimit;
+    this.stopTimeoutMs = stopTimeoutMs; this.terminate = terminate;
   }
   metadata(session) {
     return {id: session.id, name: session.name, pid: session.pty.pid, cwd: this.cwd,
       createdAt: session.createdAt, cols: session.cols, rows: session.rows,
-      exited: session.exited, exitCode: session.exitCode, sequence: session.sequence};
+      exited: session.exited, exitCode: session.exitCode, sequence: session.sequence,
+      stopping: !!session.stopping, stopError: session.stopError || undefined};
   }
   list() { return [...this.sessions.values()].map(s => this.metadata(s)); }
   get(id) {
@@ -61,7 +64,8 @@ class SessionManager extends EventEmitter {
     });
     child.onExit(({exitCode}) => {
       session.exited = true; session.exitCode = exitCode;
-      this.emit('exit', {sessionId: id, exitCode}); this.emit('changed');
+      if (session.stopRequested) this.finishStop(session);
+      else { this.emit('exit', {sessionId: id, exitCode}); this.emit('changed'); }
     });
     this.emit('changed');
     return this.metadata(session);
@@ -69,6 +73,7 @@ class SessionManager extends EventEmitter {
   input({sessionId, inputId, data}) {
     const session = this.get(sessionId);
     if (session.exited) throw new Error('This terminal has exited.');
+    if (session.stopping) throw new Error('This terminal is stopping. Input was not delivered.');
     if (!validId(inputId) || typeof data !== 'string' || Buffer.byteLength(data) > MAX_INPUT) throw new Error('Invalid terminal input.');
     if (session.inputs.has(inputId)) return {delivered: false};
     session.inputs.add(inputId);
@@ -85,13 +90,36 @@ class SessionManager extends EventEmitter {
     const session = this.get(sessionId); session.name = validName(name);
     this.emit('changed'); return this.metadata(session);
   }
+  finishStop(session) {
+    clearTimeout(session.stopTimer);
+    this.sessions.delete(session.id); session.stopping = false;
+    this.emit('stopped', {sessionId: session.id}); this.emit('changed');
+    session.stopResolve?.({stopped: true});
+    session.stopResolve = undefined; session.stopReject = undefined;
+  }
   stop({sessionId}) {
     const session = this.sessions.get(sessionId);
-    if (!session) return {stopped: true};
-    this.sessions.delete(sessionId);
-    if (!session.exited) session.pty.kill();
-    this.emit('stopped', {sessionId}); this.emit('changed'); return {stopped: true};
+    if (!session) return Promise.resolve({stopped: true});
+    if (session.exited) { this.finishStop(session); return Promise.resolve({stopped: true}); }
+    if (session.stopPromise) return session.stopPromise;
+    session.stopRequested = true; session.stopping = true; session.stopError = undefined;
+    const promise = new Promise((resolve, reject) => { session.stopResolve = resolve; session.stopReject = reject; });
+    session.stopPromise = promise;
+    const fail = error => {
+      clearTimeout(session.stopTimer); session.stopping = false;
+      session.stopError = 'The shell has not confirmed exit. Its session is retained; try Stop again. ' + error.message;
+      session.stopPromise = undefined; session.stopResolve = undefined; session.stopReject = undefined;
+      this.emit('changed'); rejectStop(new Error(session.stopError));
+    };
+    const rejectStop = session.stopReject;
+    session.stopTimer = setTimeout(() => fail(new Error('Terminal process termination timed out.')), this.stopTimeoutMs);
+    this.emit('changed');
+    try { this.terminate(session.pty); } catch (error) { fail(error); }
+    // The native onExit notification owns deletion and acknowledgement. A kill
+    // request alone is never reported as a stopped process.
+    return promise;
   }
-  dispose() { for (const id of [...this.sessions.keys()]) this.stop({sessionId: id}); }
+  dispose() { return Promise.allSettled([...this.sessions.keys()].map(sessionId => this.stop({sessionId}))); }
+
 }
 module.exports = {SessionManager, namespace, validName, validId, dimensions, MAX_INPUT};

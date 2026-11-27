@@ -33,9 +33,10 @@ final class NativeSshBridge {
     private static final long MAX_SAFE_ID = 9007199254740991L;
     private static final Set<String> METHODS = new HashSet<>(Arrays.asList(
             "ssh.getState", "ssh.readConfig", "ssh.writeConfig", "ssh.addHost", "ssh.removeHost",
-            "ssh.connect", "ssh.disconnect", "ssh.reconnect", "ssh.listDirectory", "ssh.openFolder",
+            "ssh.connect", "ssh.disconnect", "ssh.reconnect", "ssh.recordWorkspace",
             "ssh.importKey", "ssh.respondPrompt", "workspace.local", "app.about", "window.new",
-            "documents.getState", "documents.pickFolder", "documents.pickFile", "documents.openApproved", "documents.sync", "documents.resolve"));
+            "documents.getState", "documents.pickFolder", "documents.pickFile", "documents.openApproved", "documents.sync", "documents.resolve",
+            "files.clipboard", "files.read", "files.release", "files.downloadBegin", "files.downloadWrite", "files.downloadFinish", "files.abort"));
     private final android.os.Handler main = new android.os.Handler(Looper.getMainLooper());
     private final Handler handler;
     private final Map<Long, Runnable> pending = new HashMap<>();
@@ -92,7 +93,8 @@ final class NativeSshBridge {
                     Runnable timeout = () -> finish(endpoint, current, id, null,
                             new Failure("Unavailable", "The native SSH operation timed out."));
                     pending.put(id, timeout);
-                    main.postDelayed(timeout, 120000);
+                    // Choosing a destination can take longer than a data RPC.
+                    main.postDelayed(timeout, method.equals("files.downloadFinish") ? 30 * 60 * 1000 : 120000);
                     try { handler.request(method, params,
                             result -> finish(endpoint, current, id, result, null),
                             failure -> finish(endpoint, current, id, null, failure == null

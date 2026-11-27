@@ -1,10 +1,14 @@
 package app.vstab;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Binder;
+import android.os.Process;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
@@ -110,6 +114,13 @@ public final class TestDocumentsProvider extends DocumentsProvider {
     }
     @Override public Bundle call(String method, String arg, Bundle extras) {
         if (!Set.of("seed", "read", "write", "delete").contains(method)) return super.call(method, arg, extras);
+        // ContentProvider.Transport enforces URI grants for query/openFile, but a
+        // custom call() must do that itself, including after an already-cached
+        // provider loses its grant. The provider's own setup Activity may seed it.
+        int mode = method.equals("read") ? Intent.FLAG_GRANT_READ_URI_PERMISSION : Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+        if (Binder.getCallingUid() != Process.myUid() && getContext().checkUriPermission(
+                Uri.parse("content://" + AUTHORITY), Binder.getCallingPid(), Binder.getCallingUid(), mode) != PackageManager.PERMISSION_GRANTED)
+            throw new SecurityException("The synthetic document provider URI grant was revoked.");
         try {
             Bundle reply = new Bundle();
             if (method.equals("seed")) {

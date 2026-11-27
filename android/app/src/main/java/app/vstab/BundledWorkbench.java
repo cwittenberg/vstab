@@ -20,6 +20,7 @@ import java.util.Map;
 
 /** Serves the actual, version-pinned Code OSS client from APK assets. */
 final class BundledWorkbench {
+    private final Context context;
     private final AssetManager assets;
     private final ConnectionController.Ready session;
     private final String origin;
@@ -29,13 +30,14 @@ final class BundledWorkbench {
     private final byte[] startup;
 
     BundledWorkbench(Context context, ConnectionController.Ready session) throws Exception {
+        this.context = context.getApplicationContext();
         this.assets = context.getAssets();
-        this.session = session;
+        this.session = java.util.Objects.requireNonNull(session, "A native backend session is required.");
         manifest = new JSONObject(readText("workbench/bundle.json"));
-        origin = session == null ? LocalWorkspaceBridge.ORIGIN : session.origin;
+        origin = session.origin;
         String expectedServer = manifest.getString("codeServerVersion");
         String expectedCode = manifest.getString("codeVersion");
-        if (session != null && (!expectedServer.equals(session.serverVersion) || !expectedCode.equals(session.version))) {
+        if (!expectedServer.equals(session.serverVersion) || !expectedCode.equals(session.version)) {
             throw new IllegalStateException("The bundled editor and remote server versions differ. Update vstab or reinstall its matching remote server.");
         }
         staticPrefix = leadingSlash(manifest.getString("staticPrefix"));
@@ -65,11 +67,6 @@ final class BundledWorkbench {
                 if (!safeAssetPath(relative)) return missing();
                 return response(mime(relative), assets.open("workbench/static/" + relative, AssetManager.ACCESS_STREAMING), true);
             }
-            if (path.startsWith("/local/")) {
-                String relative = path.substring("/local/".length());
-                if (!safeAssetPath(relative)) return missing();
-                return response(mime(relative), assets.open("workbench/local/" + relative, AssetManager.ACCESS_STREAMING), true);
-            }
             if (path.startsWith("/controls/")) {
                 String relative = path.substring("/controls/".length());
                 if (!safeAssetPath(relative)) return missing();
@@ -91,14 +88,12 @@ final class BundledWorkbench {
             // A client asset must never silently fall back to a server-supplied script.
             return missing();
         }
-        return session == null ? missing() : null;
+        return null;
     }
 
     private String render() throws Exception {
-        String configurationKey = session == null && manifest.has("localConfigurationDefaults")
-                ? "localConfigurationDefaults" : "configurationDefaults";
-        JSONObject configuration = manifest.has(configurationKey)
-                ? new JSONObject(manifest.getJSONObject(configurationKey).toString()) : new JSONObject();
+        JSONObject configuration = manifest.has("configurationDefaults")
+                ? new JSONObject(manifest.getJSONObject("configurationDefaults").toString()) : new JSONObject();
         configuration.put("serverBasePath", ".");
         configuration.put("webviewEndpoint", trimSlash(staticPrefix) + "/out/vs/workbench/contrib/webview/browser/pre");
         configuration.put("isEnabledFileDownloads", true);
@@ -112,29 +107,27 @@ final class BundledWorkbench {
         // Some Android WebView/SwiftShader combinations corrupt xterm's WebGL
         // atlas. The supported DOM renderer is the reliable Android default.
         defaults.put("terminal.integrated.gpuAcceleration", "off");
+        // WebView 133 can update an EditContext's backing text without applying
+        // it to a newly opened document model. Use Monaco's supported textarea
+        // input path so Android Open with receives ordinary edits reliably.
+        defaults.put("editor.editContext", false);
         configuration.put("configurationDefaults", defaults);
-        if (session != null) {
-            configuration.put("remoteAuthority", "remote");
-            configuration.put("userDataPath", session.home + "/.local/share/vstab/user-data");
-            configuration.put("callbackRoute", trimLeading(vsBase) + "/callback");
+        configuration.put("remoteAuthority", "remote");
+        configuration.put("userDataPath", session.home + "/.local/share/vstab/user-data");
+        configuration.put("callbackRoute", trimLeading(vsBase) + "/callback");
+        if (session.localRuntime) {
             configuration.put("folderUri", new JSONObject().put("scheme", "vscode-remote").put("authority", "remote").put("path", session.folder));
-            Uri address = Uri.parse(origin);
-            org.json.JSONArray extensions = configuration.optJSONArray("additionalBuiltinExtensions");
-            if (extensions == null) extensions = new org.json.JSONArray();
-            extensions.put(new JSONObject().put("scheme", address.getScheme()).put("authority", address.getEncodedAuthority())
-                    .put("path", "/controls/extension"));
-            configuration.put("additionalBuiltinExtensions", extensions);
-            configuration.put("windowIndicator", new JSONObject()
-                    .put("label", session.localRuntime ? "$(device-mobile) Android" : "$(remote) SSH: " + session.host)
-                    .put("tooltip", session.localRuntime ? "On-device Node development environment" : session.user + "@" + session.host)
-                    .put("command", "vstab.ssh.connect"));
-        } else {
-            configuration.remove("remoteAuthority"); configuration.remove("userDataPath");
-            configuration.remove("callbackRoute"); configuration.remove("folderUri");
-            configuration.put("isEnabledFileDownloads", false);
-            configuration.put("isEnabledFileUploads", false);
-            configuration.put("windowIndicator", new JSONObject().put("label", "Local workspace").put("tooltip", "Files saved privately on this Android device"));
-        }
+        } else configuration.remove("folderUri");
+        Uri address = Uri.parse(origin);
+        org.json.JSONArray extensions = configuration.optJSONArray("additionalBuiltinExtensions");
+        if (extensions == null) extensions = new org.json.JSONArray();
+        extensions.put(new JSONObject().put("scheme", address.getScheme()).put("authority", address.getEncodedAuthority())
+                .put("path", "/controls/extension"));
+        configuration.put("additionalBuiltinExtensions", extensions);
+        configuration.put("windowIndicator", new JSONObject()
+                .put("label", session.localRuntime ? "$(remote)" : "$(remote) SSH: " + sshAlias())
+                .put("tooltip", session.localRuntime ? "Open Remote SSH" : session.user + "@" + session.host + ":" + session.sshPort)
+                .put("command", "workbench.action.remote.showMenu"));
         byte[] random = new byte[24]; new SecureRandom().nextBytes(random);
         String nonce = android.util.Base64.encodeToString(random, android.util.Base64.NO_WRAP | android.util.Base64.URL_SAFE);
         String template = readText(manifest.optString("template", "workbench/workbench.html"));
@@ -145,7 +138,7 @@ final class BundledWorkbench {
                 .replace("{{WORKBENCH_WEB_CONFIGURATION}}", escape(configuration.toString()))
                 .replace("{{WORKBENCH_WEB_BASE_URL}}", base)
                 .replace("{{WORKBENCH_AUTH_SESSION}}", "null")
-                .replace("{{VSTAB_LOCAL_BOOTSTRAP}}", session == null ? localBootstrap() : controlsBootstrap())
+                .replace("{{VSTAB_LOCAL_BOOTSTRAP}}", controlsBootstrap())
                 .replace("{{WORKBENCH_NLS_FALLBACK_URL}}", base + "/out/nls.messages.js")
                 .replace("{{WORKBENCH_NLS_URL}}", base + "/out/nls.messages.js")
                 .replace("{{VS_BASE}}", vsBase)
@@ -182,8 +175,14 @@ final class BundledWorkbench {
         }
     }
 
-    private String localBootstrap() {
-        return "<script type=\"module\" src=\"/local/startup.mjs\"></script>";
+    private String sshAlias() {
+        if (session.savedHostId != null && !session.savedHostId.isEmpty()) {
+            try {
+                SshConfigStore.Host saved = new SshConfigStore(context).find(session.savedHostId);
+                if (saved != null && !saved.alias.isEmpty()) return saved.alias;
+            } catch (IOException ignored) { }
+        }
+        return session.host;
     }
 
     private String controlsBootstrap() {

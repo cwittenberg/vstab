@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.json.JSONObject;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.UUID;
@@ -90,5 +91,43 @@ public final class SharedDocumentManagerTest {
         assertEquals("local divergent edit\n", readUtf8(session.documentFile.toPath()));
         assertEquals("external divergent edit\n", readUtf8(new File(session.directory, session.conflicts().get(0).recoveryPath).toPath()));
         manager.resolve(session.id, "app.js", true); waitFor(() -> external("app.js").equals("local divergent edit\n"));
+    }
+    @Test public void revokedProviderGrantRetainsUnsentLocalEditAndOriginalExternalBytes() throws Exception {
+        SharedDocumentManager.Session session = open(false);
+        String original = external("app.js");
+        CountDownLatch observed = new CountDownLatch(1), failed = new CountDownLatch(1);
+        AtomicReference<String> error = new AtomicReference<>();
+        manager.openTree(session.source, 0, new SharedDocumentManager.Listener() {
+            @Override public void onOpened(SharedDocumentManager.Session value) { observed.countDown(); }
+            @Override public void onChanged(SharedDocumentManager.Session value, DocumentSyncEngine.Result result) { }
+            @Override public void onFailure(String message) { error.set(message); failed.countDown(); }
+        });
+        assertTrue(observed.await(10, TimeUnit.SECONDS));
+        context.startActivity(new Intent().setClassName("app.vstab.test", "app.vstab.DocumentFixtureActivity")
+                .putExtra("revoke", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        waitFor(() -> {
+            try { external("app.js"); return false; }
+            catch (SecurityException denied) { return true; }
+        });
+        File local = new File(session.directory, "app.js");
+        writeUtf8(local.toPath(), "unsent edit survives revoked permission\n");
+        manager.syncNow(session.id);
+        assertTrue("No actionable revoked-grant error was delivered", failed.await(10, TimeUnit.SECONDS));
+        assertTrue(error.get(), error.get().contains("revoked") || error.get().contains("read only"));
+        assertEquals("unsent edit survives revoked permission\n", readUtf8(local.toPath()));
+        manager.close(); manager = null;
+        context.startActivity(new Intent().setClassName("app.vstab.test", "app.vstab.DocumentFixtureActivity")
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        waitFor(() -> {
+            try { return original.equals(external("app.js")); }
+            catch (SecurityException pending) { return false; }
+        });
+        assertEquals(original, external("app.js"));
+        writeUtf8(new File(context.getCacheDir(), "shared-document-revocation-proof.json").toPath(), new JSONObject()
+                .put("capturedAt", java.time.Instant.now().toString())
+                .put("environment", "Actual Android ContentResolver/DocumentsProvider, revoked test-only URI grant")
+                .put("managerError", error.get()).put("localEditAfterRevocation", readUtf8(local.toPath()))
+                .put("originalProviderBytesBefore", original).put("originalProviderBytesAfterGrantRestored", external("app.js"))
+                .put("localEditRetained", true).put("providerOriginalUnchanged", true).toString(2) + "\n");
     }
 }

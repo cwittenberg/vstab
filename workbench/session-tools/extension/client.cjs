@@ -10,7 +10,7 @@ const {namespace} = require('./session-core.cjs');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function privateDirectory(workspace, temporary = os.tmpdir()) {
-  const directory = path.join(temporary, 'vstab-pty-' + (process.getuid?.() || 0) + '-' + namespace(workspace, os.homedir()));
+  const directory = path.join(temporary, 'vstab-pty-v2-' + (process.getuid?.() || 0) + '-' + namespace(workspace, os.homedir()));
   fs.mkdirSync(directory, {mode: 0o700, recursive: true});
   const info = fs.lstatSync(directory);
   if (!info.isDirectory() || info.isSymbolicLink() || (process.getuid && info.uid !== process.getuid())) throw new Error('The terminal state directory is not private.');
@@ -75,7 +75,9 @@ class SessionClient extends EventEmitter {
       }
     });
     try {
-      await this._request('auth', undefined, {token: fs.readFileSync(path.join(this.directory, 'token'), 'utf8')});
+      const handshake = await this._request('auth', undefined, {token: fs.readFileSync(path.join(this.directory, 'token'), 'utf8')});
+      if (handshake?.version !== 2) throw new Error('The terminal engine is incompatible. Existing jobs were left untouched.');
+      this.engineVersion = handshake.version; this.daemonPid = handshake.pid;
       this.authenticated = true;
     } catch (error) { socket.destroy(); throw error; }
   }

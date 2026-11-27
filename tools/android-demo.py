@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
-"""Drive the ordinary Android UI against the isolated SSH fixture.
+"""Inspect and capture the debug Android app through ADB.
 
-No app-only test hooks or direct editor/file modifications are used here.
-Private fixture credentials are read locally and never printed.
+Shared UI helpers are also used by the workspace verification tools.
 """
 import argparse
 import json
 import os
 from pathlib import Path
 import re
-import shlex
 import shutil
 import subprocess
 import time
-import urllib.request
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -40,13 +37,6 @@ def tap(node):
     adb('shell', 'input', 'tap', *center(node))
 
 
-def field(resource, value):
-    tree = ui()
-    node = next(n for n in tree.iter('node') if n.attrib.get('resource-id') == 'app.vstab:id/' + resource)
-    tap(node)
-    adb('shell', 'input', 'keycombination', 'KEYCODE_CTRL_LEFT', 'KEYCODE_A')
-    adb('shell', 'input', 'text', shlex.quote(str(value).replace(' ', '%s')))
-
 
 def screenshot(name):
     target = ROOT / 'artifacts/demo' / name
@@ -54,53 +44,6 @@ def screenshot(name):
     target.write_bytes(adb('exec-out', 'screencap', '-p'))
     print('Captured', target.relative_to(ROOT))
 
-
-def connect():
-    private = json.loads((ROOT / '.local/demo/connection.json').read_text())
-    adb('shell', 'am', 'start', '-n', 'app.vstab/.MainActivity')
-    time.sleep(1)
-    screenshot('03-ssh-connection-settings.png')
-    for key, value in [('host', private['emulatorHost']), ('port', private['port']),
-                       ('username', private['username']), ('password', private['password']),
-                       ('folder', private['workspace'])]:
-        field(key, value)
-    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
-    tree = ui()
-    tap(next(n for n in tree.iter('node') if n.attrib.get('resource-id') == 'app.vstab:id/connect'))
-    expected = subprocess.check_output(['ssh-keygen', '-lf', str(ROOT / '.local/demo/known_hosts')], text=True).split()[1]
-    verified = False
-    deadline = time.monotonic() + 180
-    while time.monotonic() < deadline:
-        try:
-            with urllib.request.urlopen('http://127.0.0.1:' + CDP_PORT + '/json/list', timeout=1) as response:
-                targets=json.load(response)
-            for target in targets:
-                description=json.loads(target.get('description') or '{}')
-                if target.get('type')=='page' and target.get('url','').startswith('http://127.0.0.1:') and description.get('visible') and description.get('attached'):
-                    screenshot('05-ssh-workbench-opening.png')
-                    print('Android SSH workspace opened; first-connection fingerprint confirmation:', verified)
-                    return
-        except (OSError,ValueError):
-            pass
-        tree = ui()
-        text = '\n'.join(n.attrib.get('text', '') for n in tree.iter('node'))
-        trust = next((n for n in tree.iter('node') if n.attrib.get('text', '').casefold() == 'trust and connect'), None)
-        if trust is not None:
-            if expected not in text:
-                raise RuntimeError('The displayed SSH fingerprint does not match the independently verified fixture key')
-            screenshot('04-ssh-host-verification.png')
-            tap(trust)
-            verified = True
-            print('Verified fixture host fingerprint in native Android dialog')
-        if any(n.attrib.get('resource-id') == 'app.vstab:id/workbench' for n in tree.iter('node')):
-            screenshot('05-ssh-workbench-opening.png')
-            print('Android SSH workspace opened; first-connection fingerprint confirmation:', verified)
-            return
-        status = next((n.attrib.get('text', '') for n in tree.iter('node') if n.attrib.get('resource-id') == 'app.vstab:id/connection_status'), '')
-        if 'failed' in status.lower() or 'denied' in status.lower():
-            raise RuntimeError(status)
-        time.sleep(1)
-    raise RuntimeError('Android connection did not open the workbench before the deadline')
 
 
 def forward_devtools():
@@ -124,12 +67,10 @@ def forward_devtools():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['connect', 'devtools', 'capture'])
+    parser.add_argument('action', choices=['devtools', 'capture'])
     parser.add_argument('--name', default='android-current.png')
     args = parser.parse_args()
-    if args.action == 'connect':
-        connect()
-    elif args.action == 'devtools':
+    if args.action == 'devtools':
         forward_devtools()
     else:
         screenshot(args.name)

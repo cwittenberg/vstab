@@ -53,5 +53,5 @@ session credential prompts belong to the Android connection layer.
 identities, escaped/quoted paths, post-host flags, unsupported authentication,
 safe token expansion, includes and recursion,
 raw invalid-text saves, byte limits, conflicting readers, comment-preserving
-edits/removal, command parsing and stable IDs. Fourteen real-file tests passed on
-the host; Android instrumentation and the ordinary UI flow are separate checks.
+edits/removal, command parsing and stable IDs. Android instrumentation and the
+ordinary UI flow are separate checks.

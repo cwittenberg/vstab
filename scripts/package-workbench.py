@@ -7,7 +7,6 @@ pretend the downstream is unmodified upstream, or bypass protocol version checks
 """
 
 import argparse
-import copy
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -148,32 +147,20 @@ def main():
             subprocess.run(['node', str(root / 'workbench/controls/build.mjs')], check=True, cwd=root)
             shutil.copytree(controls_source, stage / 'controls/extension')
             shutil.copyfile(root / 'workbench/controls/native-startup.mjs', stage / 'controls/native-startup.mjs')
+            shutil.copyfile(root / 'workbench/controls/file-transfers.mjs', stage / 'controls/file-transfers.mjs')
         licenses = stage / 'static/notices'
         licenses.mkdir(parents=True, exist_ok=True)
         for license_path in (root / 'workbench/licenses').iterdir():
             if license_path.is_file():
                 shutil.copyfile(license_path, licenses / license_path.name)
-        # The local-workspace bridge is first-party source. Copy it into the
-        # generated assets without asking Android to load code from a server.
-        local_source = root / 'workbench/local'
-        if local_source.is_dir():
-            subprocess.run(['node', str(local_source / 'build.mjs')], check=True, cwd=root)
-            local_output = stage / 'local'
-            local_output.mkdir()
-            for runtime_file in ['bridge.mjs', 'startup.mjs']:
-                shutil.copyfile(local_source / runtime_file, local_output / runtime_file)
-            shutil.copytree(local_source / 'extension', local_output / 'extension')
-            patcher = local_source / 'patch-workbench.py'
-            if patcher.is_file():
-                workbench_js = stage / 'static/out/vs/code/browser/workbench/workbench.js'
-                original_digest = digest(workbench_js)
-                patch_function = runpy.run_path(str(patcher))['patch']
-                workbench_js.write_text(patch_function(workbench_js.read_text()))
-                embedding_patch = {'source': 'workbench/local/patch-workbench.py', 'originalSha256': original_digest, 'patchedSha256': digest(workbench_js)}
-            else:
-                embedding_patch = None
-        else:
-            embedding_patch = None
+        # Keep the scoped native controls and file-transfer hooks in the pinned
+        # Code OSS bootstrap used by both Android Node and Linux SSH sessions.
+        patcher = root / 'workbench/local/patch-workbench.py'
+        workbench_js = stage / 'static/out/vs/code/browser/workbench/workbench.js'
+        original_digest = digest(workbench_js)
+        patch_function = runpy.run_path(str(patcher))['patch']
+        workbench_js.write_text(patch_function(workbench_js.read_text()))
+        embedding_patch = {'source': 'workbench/local/patch-workbench.py', 'originalSha256': original_digest, 'patchedSha256': digest(workbench_js)}
         # Rich browser builtin outputs are produced from the exact official
         # source commit by prepare-web-extensions.sh, independently of the
         # matched core client/agent binaries.
@@ -234,26 +221,11 @@ def main():
                 'linkProtectionTrustedDomains': ['https://open-vsx.org'],
             },
         }
-        local_configuration = copy.deepcopy(configuration)
-        local_configuration.pop('remoteAuthority', None)
-        local_configuration.pop('serverBasePath', None)
-        local_configuration['productConfiguration'].pop('proxyEndpointTemplate', None)
-        local_configuration['productConfiguration'].pop('logoutEndpoint', None)
-        local_configuration['windowIndicator'] = {'label': '$(device-mobile) Android', 'tooltip': 'Local Android workspace'}
         files = {}
         for path in sorted((stage / 'static').rglob('*')):
             if path.is_file():
                 files[path.relative_to(stage).as_posix()] = {'sha256': digest(path), 'bytes': path.stat().st_size}
-        local_files = {}
         controls_files = {}
-        local_manifest = None
-        if (stage / 'local').is_dir():
-            for path in sorted((stage / 'local').rglob('*')):
-                if path.is_file():
-                    local_files[path.relative_to(stage).as_posix()] = {'sha256': digest(path), 'bytes': path.stat().st_size}
-            local_manifest_path = stage / 'local/extension/package.json'
-            if local_manifest_path.is_file():
-                local_manifest = json.loads(local_manifest_path.read_text())
         if (stage / 'controls').is_dir():
             for path in sorted((stage / 'controls').rglob('*')):
                 if path.is_file():
@@ -271,21 +243,14 @@ def main():
                 'WORKBENCH_WEB_BASE_URL': static_prefix.rstrip('/'),
                 'WORKBENCH_NLS_FALLBACK_URL': static_prefix + 'out/nls.messages.js',
                 'BASE': '.', 'VS_BASE': '.',
-                'VSTAB_LOCAL_BOOTSTRAP': 'Android supplies /controls/native-startup.mjs for Node-backed local/SSH workbenches, or /local/startup.mjs for the retained browser-local prototype',
+                'VSTAB_LOCAL_BOOTSTRAP': 'Android supplies /controls/native-startup.mjs for Node-backed local/SSH workbenches',
             },
             'configurationDefaults': configuration,
             'remoteConfigurationDefaults': configuration,
-            'localConfigurationDefaults': local_configuration,
             'packagedBuiltinExtensions': sorted(packaged_builtin_extensions),
             'embeddingPatch': embedding_patch,
             'officialWebExtensionsBuild': web_build_provenance,
-            'localRuntimeFiles': local_files,
             'controlsRuntimeFiles': controls_files,
-            'localExtension': None if local_manifest is None else {
-                'id': local_manifest.get('publisher', '') + '.' + local_manifest['name'],
-                'version': local_manifest['version'],
-                'proposedApis': local_manifest.get('enabledApiProposals', []),
-            },
             'userDataPathRule': 'ready.home + /.local/share/vstab/user-data',
             'files': files,
             'fileCount': len(files),

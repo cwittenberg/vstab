@@ -8,7 +8,6 @@ import android.os.Looper;
 import android.util.Base64;
 
 import com.jcraft.jsch.ChannelExec;
-import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.HostKey;
 import com.jcraft.jsch.HostKeyRepository;
 import com.jcraft.jsch.JSch;
@@ -18,7 +17,6 @@ import com.jcraft.jsch.UserInfo;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.JSONObject;
-import org.json.JSONArray;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -85,30 +83,6 @@ final class ConnectionController {
         }
     }
 
-    static final class DirectoryListing {
-        final String path, parent;
-        final List<RemoteDirectory> directories;
-        final boolean truncated;
-        DirectoryListing(String path, String parent, List<RemoteDirectory> directories, boolean truncated) {
-            this.path = path; this.parent = parent; this.directories = directories; this.truncated = truncated;
-        }
-        JSONObject toJson() throws Exception {
-            JSONArray entries = new JSONArray();
-            for (RemoteDirectory directory : directories) entries.put(new JSONObject().put("name", directory.name)
-                    .put("path", directory.path).put("symbolicLink", directory.symbolicLink));
-            return new JSONObject().put("path", path).put("parent", parent == null ? JSONObject.NULL : parent)
-                    .put("directories", entries).put("truncated", truncated);
-        }
-    }
-
-    static final class RemoteDirectory {
-        final String name, path;
-        final boolean symbolicLink;
-        RemoteDirectory(String name, String path, boolean symbolicLink) {
-            this.name = name; this.path = path; this.symbolicLink = symbolicLink;
-        }
-    }
-
     private final Context context;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -116,7 +90,6 @@ final class ConnectionController {
     private volatile Observer observer;
     private volatile Session session;
     private volatile ChannelExec bootstrap;
-    private volatile ChannelSftp browsing;
     private volatile boolean busy;
     private volatile Ready ready;
     private volatile CountDownLatch hostDecision;
@@ -183,13 +156,13 @@ final class ConnectionController {
                 String serverPassword = result.getString("password");
                 if (serverPassword.length() < 16) throw new IllegalStateException("The remote server did not provide secure authentication.");
                 String remoteHome = result.optString("home", result.getString("workspace"));
-                String folder = resolveFolder(profile.folder, remoteHome, result.getString("workspace"));
+                String folder = profile.folder.isEmpty() ? "" : resolveFolder(profile.folder, remoteHome, result.getString("workspace"));
                 update(operation, "Opening encrypted workbench tunnel…");
                 int localPort = openWorkspaceForward(opened, profile, remotePort, operation);
                 String origin = "http://" + loopbackHost + ":" + localPort;
                 List<String> cookies = login(origin, serverPassword);
                 checkCurrent(operation);
-                Ready completed = new Ready(origin, origin + "/?folder=" + encode(folder), profile,
+                Ready completed = new Ready(origin, folder.isEmpty() ? origin + "/" : origin + "/?folder=" + encode(folder), profile,
                         result.optString("codeVersion", result.optString("serverVersion")),
                         result.getString("serverVersion"), remoteHome, folder, remotePort, cookies);
                 ready = completed;
@@ -231,109 +204,23 @@ final class ConnectionController {
         ChannelExec running = bootstrap;
         bootstrap = null;
         if (running != null) running.disconnect();
-        ChannelSftp directory = browsing; browsing = null;
-        if (directory != null) directory.disconnect();
         Session opened = session;
         session = null;
         if (opened != null) opened.disconnect();
     }
 
-    void listDirectories(String requested, Consumer<DirectoryListing> success, Consumer<String> failure) {
-        int operation = generation.get();
+    synchronized Ready recordWorkspace(String path) {
         Ready workspace = ready;
         Session opened = session;
-        if (workspace == null || opened == null || !opened.isConnected()) {
-            main.post(() -> failure.accept("Connect to this SSH host before browsing its directories.")); return;
-        }
-        worker.execute(() -> {
-            ChannelSftp channel = null;
-            try {
-                checkCurrent(operation);
-                channel = (ChannelSftp) opened.openChannel("sftp"); browsing = channel;
-                channel.connect(20000);
-                String path = checkedRemoteDirectory(channel, requested, workspace);
-                List<ChannelSftp.LsEntry> candidates = new ArrayList<>();
-                int[] examined = {0}; boolean[] truncated = {false};
-                channel.ls(path, entry -> {
-                    if (++examined[0] > 5000) { truncated[0] = true; return ChannelSftp.LsEntrySelector.BREAK; }
-                    if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")
-                            && (entry.getAttrs().isDir() || entry.getAttrs().isLink())) candidates.add(entry);
-                    return ChannelSftp.LsEntrySelector.CONTINUE;
-                });
-                List<RemoteDirectory> directories = new ArrayList<>();
-                int outputBytes = path.getBytes(StandardCharsets.UTF_8).length + 512;
-                for (ChannelSftp.LsEntry entry : candidates) {
-                    checkCurrent(operation);
-                    String child = path.equals("/") ? "/" + entry.getFilename() : path + "/" + entry.getFilename();
-                    boolean directory = entry.getAttrs().isDir();
-                    if (!directory && entry.getAttrs().isLink()) {
-                        try { directory = channel.stat(child).isDir(); }
-                        catch (com.jcraft.jsch.SftpException inaccessible) { continue; }
-                    }
-                    if (directory) {
-                        int entryBytes = (child.length() + entry.getFilename().length()) * 6 + 128;
-                        if (outputBytes + entryBytes > 350 * 1024) { truncated[0] = true; break; }
-                        outputBytes += entryBytes;
-                        directories.add(new RemoteDirectory(entry.getFilename(), child, entry.getAttrs().isLink()));
-                    }
-                    if (directories.size() >= 1000) { truncated[0] = true; break; }
-                }
-                directories.sort(java.util.Comparator.comparing((RemoteDirectory item) -> item.name.toLowerCase(java.util.Locale.ROOT))
-                        .thenComparing(item -> item.name));
-                String parent = path.equals("/") ? null : path.substring(0, Math.max(1, path.lastIndexOf('/')));
-                DirectoryListing listing = new DirectoryListing(path, parent, directories, truncated[0]);
-                main.post(() -> { if (operation == generation.get()) success.accept(listing); });
-            } catch (Exception error) {
-                String reason = directoryError(error);
-                main.post(() -> { if (operation == generation.get()) failure.accept(reason); });
-            } finally { if (channel != null) channel.disconnect(); if (browsing == channel) browsing = null; }
-        });
-    }
-
-    void openFolder(String requested, Consumer<Ready> success, Consumer<String> failure) {
-        int operation = generation.get();
-        Ready workspace = ready;
-        Session opened = session;
-        if (workspace == null || opened == null || !opened.isConnected()) {
-            main.post(() -> failure.accept("Connect to this SSH host before opening a remote folder.")); return;
-        }
-        worker.execute(() -> {
-            ChannelSftp channel = null;
-            try {
-                checkCurrent(operation);
-                channel = (ChannelSftp) opened.openChannel("sftp"); browsing = channel;
-                channel.connect(20000);
-                String folder = checkedRemoteDirectory(channel, requested, workspace);
-                checkCurrent(operation);
-                Profile profile = new Profile(workspace.host, workspace.sshPort, workspace.user, "", folder, null, "", workspace.savedHostId);
-                Ready changed = new Ready(workspace.origin, workspace.origin + "/?folder=" + encode(folder), profile,
-                        workspace.version, workspace.serverVersion, workspace.home, folder, workspace.remotePort, workspace.cookies);
-                ready = changed;
-                main.post(() -> { if (operation == generation.get()) success.accept(changed); });
-            } catch (Exception error) {
-                String reason = directoryError(error);
-                main.post(() -> { if (operation == generation.get()) failure.accept(reason); });
-            } finally { if (channel != null) channel.disconnect(); if (browsing == channel) browsing = null; }
-        });
-    }
-
-    private static String checkedRemoteDirectory(ChannelSftp channel, String requested, Ready workspace) throws Exception {
-        String folder = requested == null || requested.isEmpty() ? workspace.home : requested;
-        if (folder.length() > 4096 || folder.indexOf('\0') >= 0) throw new IllegalArgumentException("The remote directory path is invalid.");
-        folder = resolveFolder(folder, workspace.home, workspace.home);
-        String canonical = channel.realpath(folder);
-        if (!canonical.startsWith("/") || !channel.stat(canonical).isDir()) throw new IllegalArgumentException("Choose an existing remote directory.");
-        return canonical;
-    }
-
-    private static String directoryError(Exception error) {
-        if (error instanceof com.jcraft.jsch.SftpException) {
-            int id = ((com.jcraft.jsch.SftpException) error).id;
-            if (id == ChannelSftp.SSH_FX_PERMISSION_DENIED) return "This SSH account cannot read the selected directory.";
-            if (id == ChannelSftp.SSH_FX_NO_SUCH_FILE) return "The remote directory no longer exists.";
-        }
-        if (error instanceof IllegalArgumentException) return error.getMessage();
-        return "The remote directory could not be read over SFTP. Check the SSH connection and server's SFTP support.";
+        if (workspace == null || opened == null || !opened.isConnected())
+            throw new IllegalStateException("This SSH session is no longer connected.");
+        if (path == null || path.length() > 4096 || path.indexOf('\0') >= 0 || (!path.isEmpty() && !path.startsWith("/")))
+            throw new IllegalArgumentException("The selected remote workspace path must be absolute.");
+        Profile profile = new Profile(workspace.host, workspace.sshPort, workspace.user, "", path, null, "", workspace.savedHostId);
+        Ready changed = new Ready(workspace.origin, path.isEmpty() ? workspace.origin + "/" : workspace.origin + "/?folder=" + encode(path),
+                profile, workspace.version, workspace.serverVersion, workspace.home, path, workspace.remotePort, workspace.cookies);
+        ready = changed;
+        return changed;
     }
 
     private int openWorkspaceForward(Session opened, Profile profile, int remotePort, int operation) throws Exception {

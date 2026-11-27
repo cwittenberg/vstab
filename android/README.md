@@ -18,9 +18,11 @@ Native executables and addons ship as extracted, read-only APK native libraries.
 
 On first launch the app prepares its bundled runtime and probes Node child processes, a Bash PTY, SQLite, Argon2 and filesystem notifications before starting the local server. A failed check is shown explicitly. The runtime uses a private Unix socket behind an authenticated, app-owned loopback gateway. Its local origin stays stable across ordinary restarts, preserving workspace identity and editor storage.
 
-The default project is a real directory under `files/workspaces/default` in private app storage. Node extensions, terminals and language servers use the ordinary filesystem. Home, extension installations and user settings survive APK updates; uninstalling removes private data. The earlier browser filesystem adapter remains in the source, but the normal app uses the native backend.
+The default project is a real directory under `files/workspaces/default` in private app storage. Node extensions, terminals and language servers use the ordinary filesystem. Home, extension installations and user settings survive APK updates; uninstalling removes private data.
 
 Editing, installed tools and compatible extensions can work offline. Package/extension downloads, SSH connections and cloud AI services require their respective network connections. Desktop Linux native helpers need Android/Bionic-compatible replacements; a Node extension host does not make every desktop executable portable.
+
+Explorer supports Android file upload, file clipboard paste and Download in local and SSH workspaces. See [Android file transfers](../docs/ANDROID_FILE_TRANSFERS.md) for actions and limits.
 
 Use **vstab: Open Shared Folder...** or **vstab: Open Android File...** to grant Android document access. Shared documents use private working copies with write-back, change detection and conflict review. Up to four workspace windows can be opened explicitly; Android arranges them through split screen or desktop windowing. See [workspace features and limits](../docs/WORKSPACE_FEATURES.md).
 
@@ -34,7 +36,7 @@ Connections use masked password/passphrase prompts and fingerprint confirmation.
 
 Compare the first-connection SHA-256 fingerprint with the server's fingerprint. Accepted keys are stored privately; changed keys are blocked. The bundled script installs/starts a version-pinned remote server under the selected SSH account without sudo. Initial server setup needs network access on that host unless the verified archive is preloaded.
 
-Expand a connected host to browse its directories over the authenticated SFTP session, then open the folder in the normal Explorer. Files, Node extensions and terminals execute on that SSH host through the native tunnel. Opening another folder in the window reuses its connection. Disconnect returns to the on-device environment.
+Remote Explorer manages SSH hosts. Connecting opens a remote window without a selected folder; use the standard **File → Open Folder...** action and Code OSS Explorer for remote filesystem navigation. Workspace changes synchronize native metadata and recent-folder history on the existing SSH session without another directory browser or a second workbench reload. Files, Node extensions and terminals execute on the SSH host through the native tunnel. Disconnect returns to the on-device environment.
 
 Each workspace window has one active SSH connection and a separate loopback cookie host. The on-device backend is shared. Jump hosts, keyboard-interactive/MFA and guaranteed background survival remain outside the current implementation. Terminal GPU acceleration defaults to off for Android WebView; it can be changed in Code OSS Settings.
 
@@ -48,4 +50,4 @@ Each workspace window has one active SSH connection and a separate loopback cook
 
 Dependency licenses are bundled and available in About vstab. VSCodroid adaptation and attribution are documented in [the native runtime guide](../native-runtime/README.md). Private connection, trust and runtime data are excluded from Android backup and device transfer.
 
-Build/lint results establish source/package checks; device tests and ordinary app journeys establish behavior. Follow [the verification procedure](../docs/DEMONSTRATION.md). Emulator proof does not establish physical tablet qualification, and opening an AI panel does not establish authenticated cloud inference.
+Build/lint results establish source/package checks; device tests and ordinary app journeys establish behavior. Check offline editing, save/restart, terminals, SSH reconnection and document write-back on the intended device. Emulator checks do not establish physical tablet qualification, and opening an AI panel does not establish authenticated cloud inference.

@@ -9,7 +9,11 @@ const {CDP}=require('./cdp.cjs');
     throw new Error('Usage: node tools/edit-demo-line.cjs filename line replacement [report.json]');
   const c=await CDP.connect();
   try{
-    await c.click('[aria-label='+JSON.stringify(filename)+']');
+    await c.waitFor(`[...document.querySelectorAll('.explorer-viewlet .label-name, .tabs-container .label-name')].some(e=>e.textContent.trim()===${JSON.stringify(filename)})`,60000);
+    const inExplorer=await c.evaluate(`[...document.querySelectorAll('.explorer-viewlet .label-name')].some(e=>e.textContent.trim()===${JSON.stringify(filename)})`);
+    // Explorer rows extend well beyond their label. Clicking empty row space
+    // selects the row without opening a file; use the actual filename label.
+    await c.clickText(filename,inExplorer?'.explorer-viewlet .label-name':'.tabs-container .label-name');
     await c.waitFor(`!!document.querySelector('.monaco-editor[data-uri*='+${JSON.stringify(JSON.stringify(filename))}+']')`);
     const selector='.monaco-editor[data-uri*='+JSON.stringify(filename)+'] .view-lines';
     await c.click(selector);

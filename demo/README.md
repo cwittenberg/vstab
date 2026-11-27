@@ -9,7 +9,7 @@ In vstab, add that SSH host, inspect/accept its fingerprint, authenticate, and o
 For independent verification of saved bytes after the app interaction:
 
 ```sh
-python3 demo/verify.py --output evidence/remote-state.json
+python3 demo/verify.py --output artifacts/remote-state.json
 ```
 
 This records the remote file, Git diff, program output and installed extension IDs over SSH. Pair it with Android screenshots/video and app session evidence; the inspection alone does not demonstrate Android UI interaction.

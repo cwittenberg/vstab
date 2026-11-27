@@ -88,14 +88,14 @@ class CDP {
     return{x:q[0]+u*(q[2]-q[0])+v*(q[6]-q[0]),y:q[1]+u*(q[3]-q[1])+v*(q[7]-q[1])};
   }
   async click(selector) {
-    const point = await this.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('Missing UI element');const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`);
-    await this.send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});
-    await this.send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
+    const point = await this.evaluate(`(()=>{const e=[...document.querySelectorAll(${JSON.stringify(selector)})].find(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&e.checkVisibility({checkVisibilityCSS:true});});if(!e)throw Error('Missing visible UI element');const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`);
+    await this.send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',buttons:1,clickCount:1});
+    await this.send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',buttons:0,clickCount:1});
   }
   async clickText(text, selector='button,a.monaco-button,[role="button"]') {
-    const point=await this.evaluate(`(()=>{const e=[...document.querySelectorAll(${JSON.stringify(selector)})].find(e=>e.textContent.trim()===${JSON.stringify(text)});if(!e)throw Error('Missing UI text');const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`);
-    await this.send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});
-    await this.send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
+    const point=await this.evaluate(`(()=>{const e=[...document.querySelectorAll(${JSON.stringify(selector)})].find(e=>e.textContent.trim()===${JSON.stringify(text)}&&e.getBoundingClientRect().height>0&&e.checkVisibility({checkVisibilityCSS:true}));if(!e)throw Error('Missing visible UI text');const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`);
+    await this.send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',buttons:1,clickCount:1});
+    await this.send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',buttons:0,clickCount:1});
   }
   async key(key, code, windowsVirtualKeyCode, modifiers=0) {
     const params={key,code,windowsVirtualKeyCode,nativeVirtualKeyCode:windowsVirtualKeyCode,modifiers};

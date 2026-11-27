@@ -1,6 +1,6 @@
 # vstab architecture
 
-The maintained implementation target is [TARGET.md](../TARGET.md). This guide describes the current source structure and replaces the earlier milestone-by-milestone proposal.
+This guide describes the Android app, its bundled editor and its local and remote backends.
 
 ## Workbench and backends
 
@@ -18,7 +18,7 @@ Client and server identities remain paired. Exact upstream commits, artifact has
 
 The `vstab.android-controls` browser extension puts connection, workspace and document actions in Code OSS. A scoped MessagePort connects that first-party extension to the active Android window. [The control protocol](SSH_CONTROL_PROTOCOL.md) defines its methods and limits; [SSH configuration](SSH_CONFIG.md) describes the actual on-device `~/.ssh/config` integration. Credentials belong to a native-issued authentication prompt and are not stored as host configuration.
 
-The older browser-only local filesystem adapter under `workbench/local/` remains available for its tests and prototype embedding branch. The ordinary application uses the native Node backend. Its embedding patch also supplies the current first-party control extension's workbench hook.
+The embedding patch in `workbench/local/patch-workbench.py` supplies the first-party control extension's workbench hook. Both local and SSH workspaces use Node backends.
 
 ## Files, windows and terminals
 
@@ -30,4 +30,4 @@ The `vstab.session-tools` Node extension owns named PTY sessions through a separ
 
 Build/lint and unit checks establish source and package properties. Android instrumentation establishes the exercised runtime behavior. Normal app journeys must separately demonstrate offline startup/edit/save/restart, integrated terminals, SSH workflows, shared-document write-back and extension activation. Provider sign-in and a completed AI request are distinct from opening an extension panel.
 
-Physical ARM64 tablet behavior, arbitrary desktop native extensions, advanced SSH authentication and uninterrupted Android background execution require separate evidence. Follow the [verification procedure](DEMONSTRATION.md) and [workspace acceptance target](WORKSPACE_FEATURES_TARGET.md). Generated captures and private fixture data stay outside the source repository.
+Physical ARM64 tablet behavior, arbitrary desktop native extensions, advanced SSH authentication and uninterrupted Android background execution require separate evidence. Use the [isolated SSH fixture](../demo/README.md) for remote checks. Generated captures and private fixture data stay outside the source repository.

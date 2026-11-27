@@ -1,40 +1,39 @@
 #!/usr/bin/env python3
-"""Add scoped native controls and local hooks to the pinned real Code OSS bootstrap."""
+"""Add scoped native controls and file-transfer hooks to the pinned real Code OSS bootstrap."""
 import argparse
 import hashlib
 from pathlib import Path
 import re
 
-MARKER = '/*vstab-local-embedder-v4*/'
+MARKER = '/*vstab-native-embedder-v1*/'
 ORIGINAL_SHA256 = '6cd0f009b42cc337cd45812f3dfa3cb1886a91e29720aa60683b8c306ef08f3e'
-PATCHED_SHA256 = 'f0c733ab73fa19a05ada34eb27176d6c48f0cbd902849b8e53e14f5a6735f6e3'
+PATCHED_SHA256 = '9e76156ee9375bbaa2ee5e78f3be13d35755d63a1652d9b630c7b5028d4234c2'
 
 
 def patch(source: str) -> str:
     if MARKER in source:
         if hashlib.sha256(source.encode()).hexdigest() != PATCHED_SHA256:
-            raise ValueError('The v4 workbench hook differs from its expected output')
+            raise ValueError('The native workbench hook differs from its expected output')
         return source
-    if '/*vstab-local-embedder-' in source:
+    if '/*vstab-local-embedder-' in source or '/*vstab-native-embedder-' in source:
         raise ValueError('Stale vstab embedding hook; re-extract the original pinned workbench before patching')
     if hashlib.sha256(source.encode()).hexdigest() != ORIGINAL_SHA256:
         raise ValueError('Workbench differs from the pinned Code OSS artifact; refusing to patch')
-    # code-server's local-storage.diff changes the browser user-data URI to an
-    # unconditional remote path. Restore the exact upstream web URI locally so
-    # BrowserMain uses its existing IndexedDB provider without an SSH server.
-    roaming = re.compile(
-        r'get userRoamingDataHome\(\)\{return (?P<join>\w+)\((?P<uri>\w+)\.file\(this\.userDataPath\)'
-        r'\.with\(\{scheme:(?P<schemas>\w+)\.vscodeRemote\}\),"User"\)\}'
-    )
-    roaming_matches = list(roaming.finditer(source))
-    if len(roaming_matches) != 1:
-        raise ValueError('Cannot identify the pinned remote-only user-data getter; refusing to patch')
-    roaming_match = roaming_matches[0]
-    original_roaming = roaming_match.group(0)[len('get userRoamingDataHome(){return '):-1]
-    restored = ('get userRoamingDataHome(){return this.remoteAuthority?'
-                + original_roaming + ':' + roaming_match['uri']
-                + '.file("/User").with({scheme:' + roaming_match['schemas'] + '.vscodeUserData})}')
-    source = source[:roaming_match.start()] + restored + source[roaming_match.end():]
+    # Android owns the destination picker. Keep large individual files on the
+    # regular download path so the main-frame adapter can stream them to SAF.
+    # Folder downloads retain upstream's directory flow and its own limits.
+    large_download = 'r=i.isDirectory||i.size>n,a=xo();if(r&&Kg.supported(a))'
+    if source.count(large_download) != 1:
+        raise ValueError('Cannot identify the pinned browser download path; refusing to patch')
+    source = source.replace(large_download, 'r=i.isDirectory,a=xo();if(r&&Kg.supported(a))', 1)
+    # A browser may retain an old Android URI clipboard when Code OSS's custom
+    # MIME write fails. Explicit Explorer copies must still use its own in-memory
+    # file clipboard. Emit only a local signal, before attempting that write.
+    copy_resources = 'async writeResources(e){try{await xo().navigator.clipboard.write('
+    if source.count(copy_resources) != 1:
+        raise ValueError('Cannot identify the pinned Explorer clipboard writer; refusing to patch')
+    source = source.replace(copy_resources,
+        'async writeResources(e){if(e.length)xo().dispatchEvent(new Event("vstab-explorer-copy"));try{await xo().navigator.clipboard.write(', 1)
     # Derive minifier aliases from the existing startup call; never patch an
     # arbitrary create-like call elsewhere in the bundled workbench.
     pattern = re.compile(
@@ -46,10 +45,6 @@ def patch(source: str) -> str:
     if len(matches) != 1:
         raise ValueError(f'Expected one pinned Code OSS bootstrap, found {len(matches)}; refusing to patch')
     match = matches[0]
-    uri_aliases = set(re.findall(r'folderUri:(\w+)\.revive\(\w+\.folderUri\)', source[-12000:]))
-    if len(uri_aliases) != 1:
-        raise ValueError('Cannot identify the pinned bootstrap URI reviver; refusing to patch')
-    uri_alias = uri_aliases.pop()
     control_hook = (
         'function vstabApplyControls(options){'
         'const port=globalThis.__vstabControlOptions?.messagePorts?.get("vstab.android-controls");'
@@ -58,16 +53,7 @@ def patch(source: str) -> str:
         'options.enabledExtensionProposedApi=Array.from(new Set([...(options.enabledExtensionProposedApi||[]),"vstab.android-controls"]));}'
         'return options;}'
     )
-    hook = (
-        MARKER + control_hook + 'if(globalThis.__vstabLocalOptions){'
-        + 'const vstabOptions=globalThis.__vstabLocalOptions;'
-        + 'if(vstabOptions.workspaceProvider?.workspace?.folderUri)'
-        + 'vstabOptions.workspaceProvider.workspace.folderUri=' + uri_alias
-        + '.revive(vstabOptions.workspaceProvider.workspace.folderUri);'
-        + 'globalThis.__vstabWorkbench='
-        + match['create'] + '(' + match['window'] + '.document.body,vstabApplyControls({...JSON.parse('
-        + match['settings'] + '),...vstabOptions}));return;}'
-    )
+    hook = MARKER + control_hook
     normal_startup = match['rest'].replace('...' + match['config'] + ',',
                                           '...vstabApplyControls(' + match['config'] + '),', 1)
     return (source[:match.end('guard')] + hook + normal_startup + source[match.end():])
@@ -81,7 +67,7 @@ def main():
     original = args.input.read_bytes()
     result = patch(original.decode()).encode()
     (args.output or args.input).write_bytes(result)
-    print('vstab local embedder patch: ' + hashlib.sha256(original).hexdigest() + ' -> ' + hashlib.sha256(result).hexdigest())
+    print('vstab native embedder patch: ' + hashlib.sha256(original).hexdigest() + ' -> ' + hashlib.sha256(result).hexdigest())
 
 
 if __name__ == '__main__':

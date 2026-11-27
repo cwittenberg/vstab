@@ -20,6 +20,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const {execFileSync} = require('node:child_process');
 const {CDP} = require('./cdp.cjs');
+const {typeKeys} = require('./feature-proof.cjs');
 const {ActivationLogParser, redact} = require('../workbench/compatibility/extension/diagnostics');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -28,6 +29,8 @@ const SERIAL = process.env.VSTAB_ANDROID_SERIAL || 'emulator-5580';
 const ADB = process.env.ANDROID_HOME ? path.join(process.env.ANDROID_HOME, 'platform-tools/adb') : 'adb';
 const OUTPUT = path.resolve(process.env.VSTAB_COMPATIBILITY_PROOF_DIR || path.join(ROOT, 'artifacts/features/extension-compatibility'));
 const FIXTURE = path.join(ROOT, 'workbench/compatibility/test/fixtures/native-failure');
+const CANDIDATE = path.resolve(process.env.VSTAB_CANDIDATE_APK || process.env.VSTAB_COMPATIBILITY_APK || path.join(ROOT, 'android/app/build/outputs/apk/debug/app-debug.apk'));
+const EXPECTED_APK_SHA = process.env.VSTAB_EXPECTED_APK_SHA256;
 const runId = Date.now().toString();
 const fixtureId = 'vstab-proof.native-failure-' + runId;
 const fixtureFolder = fixtureId + '-1.0.0';
@@ -63,15 +66,25 @@ function readRegistry() {
   return {bytes, values};
 }
 function removeFixture() {
-  const current = readRegistry();
-  const remaining = current.values.filter(value => value.identifier?.id !== fixtureId);
-  if (remaining.length !== current.values.length) appWrite(registryPath, JSON.stringify(remaining), digest(current.bytes));
   appShell('rm -rf -- ' + quote(fixturePath));
   appShell('rm -rf -- ' + quote(fixtureStage));
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const current = readRegistry();
+    const remaining = current.values.filter(value => value.identifier?.id !== fixtureId);
+    if (remaining.length === current.values.length) return;
+    try { appWrite(registryPath, JSON.stringify(remaining), digest(current.bytes)); return; }
+    catch (error) { if (error.status !== 71 || attempt === 3) throw error; }
+  }
 }
 function hideKeyboard() {
-  const state = adb(['shell', 'dumpsys', 'input_method']).toString();
-  if (/\bmInputShown=true\b/.test(state)) adb(['shell', 'input', 'keyevent', 'KEYCODE_BACK']);
+  // mInputShown can remain true after the IME disappeared. A Back based on that
+  // stale field can finish the editor. Require the actual IME Window surface.
+  const state = adb(['shell', 'dumpsys', 'window', 'windows']).toString();
+  const windows = state.split(/(?=^  Window #\d+ )/m);
+  const visible = windows.some(block => /mIsImWindow=true\b/.test(block) &&
+    /mViewVisibility=0x0\b/.test(block) && /mHasSurface=true\b/.test(block) &&
+    /\bisOnScreen=true\b/.test(block) && /\bisVisible=true\b/.test(block));
+  if (visible) adb(['shell', 'input', 'keyevent', 'KEYCODE_BACK']);
 }
 async function screenshot(name) {
   hideKeyboard();
@@ -89,10 +102,25 @@ async function palette(client, label) {
   await client.waitFor('!!document.querySelector(".monaco-workbench")', 90000);
   await client.key('Escape', 'Escape', 27);
   await client.key('P', 'KeyP', 80, 10);
-  await client.waitFor('!!document.querySelector(".quick-input-widget input") && document.querySelector(".quick-input-widget").offsetHeight > 0');
-  await client.text(label);
+  await client.waitFor('document.querySelector(".quick-input-widget input")?.value === ">" && document.querySelector(".quick-input-widget").offsetHeight > 0');
+  await pause(200);
+  await client.click('.quick-input-widget input');
+  await client.waitFor('document.activeElement === document.querySelector(".quick-input-widget input")');
+  await typeKeys(client, label);
   await client.waitFor(`[...document.querySelectorAll('.quick-input-widget .label-name')].some(e => e.textContent.trim() === ${JSON.stringify(label)})`);
   await client.clickText(label, '.quick-input-widget .label-name');
+}
+
+async function reloadWorkbench(client) {
+  await client.send('Page.enable');
+  let loaded = false;
+  client.on('Page.loadEventFired', () => { loaded = true; });
+  await palette(client, 'Developer: Reload Window');
+  const deadline = Date.now() + 30000;
+  while (!loaded && Date.now() < deadline) await pause(100);
+  assert.ok(loaded, 'Reload Window must finish navigation before the next palette action.');
+  await pause(1000);
+  await client.waitFor('document.readyState === "complete" && !!document.querySelector(".monaco-workbench")');
 }
 
 function observerScript() {
@@ -116,22 +144,39 @@ function observerScript() {
 async function currentReport(client) {
   await palette(client, 'vstab: Show Extension Compatibility Report');
   await client.waitFor('document.querySelector(".output-view .view-lines")?.textContent.includes("Unsupported")');
-  if (await client.evaluate('!!document.querySelector("[aria-label=\"Maximize Panel\"]")')) {
+  if (await client.evaluate(`!!document.querySelector(${JSON.stringify('[aria-label="Maximize Panel"]')})`)) {
     await client.click('[aria-label="Maximize Panel"]');
   }
   hideKeyboard();
   await pause(1000);
-  if (await client.evaluate('!!document.querySelector("[aria-label=\"Turn Auto Scrolling Off\"]")')) {
+  if (await client.evaluate(`!!document.querySelector(${JSON.stringify('[aria-label="Turn Auto Scrolling Off"]')})`)) {
     await client.click('[aria-label="Turn Auto Scrolling Off"]');
   }
   const point = await client.evaluate('(() => { const r = document.querySelector(".output-view").getBoundingClientRect(); return {x: r.x + r.width / 2, y: r.y + r.height / 2}; })()');
   await client.send('Input.dispatchMouseEvent', {type: 'mouseWheel', ...point, deltaX: 0, deltaY: -100000});
-  await client.waitFor(`document.body.innerText.includes(${JSON.stringify(fixtureId)}) && document.body.innerText.includes('Details (credentials removed)')`);
+  await client.waitFor(`(() => { const text = document.body.innerText.replace(/\u00a0/g, ' '); return text.includes(${JSON.stringify(fixtureId)}) && text.includes('Details (credentials removed)'); })()`);
   return client.evaluate(`(() => {
     const text = [...document.querySelectorAll('.output .view-lines, .panel .output-view .view-lines, .output-view .view-lines')]
-      .map(e => e.innerText).join('\n');
-    return text || document.body.innerText;
+      .map(e => e.innerText.replace(/\u00a0/g, ' ')).join(String.fromCharCode(10));
+    return text || document.body.innerText.replace(/\u00a0/g, ' ');
   })()`);
+}
+
+async function visibleFixtureNotifications(client) {
+  return client.evaluate(`[...document.querySelectorAll('.notification-list-item')]
+    .filter(e => e.textContent.includes(${JSON.stringify(fixtureId)}) && e.textContent.includes('could not start'))
+    .map(e => ({text: e.innerText, actions: [...e.querySelectorAll('.monaco-button')].map(b => b.textContent.trim())}))`);
+}
+
+async function clickFixtureAction(client, label) {
+  const point = await client.evaluate(`(() => {
+    const notification = [...document.querySelectorAll('.notification-list-item')].find(e => e.textContent.includes(${JSON.stringify(fixtureId)}) && e.textContent.includes('could not start'));
+    const button = [...(notification?.querySelectorAll('.monaco-button') || [])].find(e => e.textContent.trim() === ${JSON.stringify(label)});
+    if (!button) throw new Error('The fixture notification action is not visible.');
+    const r = button.getBoundingClientRect(); return {x: r.x + r.width / 2, y: r.y + r.height / 2};
+  })()`);
+  await client.send('Input.dispatchMouseEvent', {type: 'mousePressed', ...point, button: 'left', clickCount: 1});
+  await client.send('Input.dispatchMouseEvent', {type: 'mouseReleased', ...point, button: 'left', clickCount: 1});
 }
 
 async function main() {
@@ -140,15 +185,34 @@ async function main() {
     return;
   }
   fs.mkdirSync(OUTPUT, {recursive: true});
+  if (fs.existsSync(path.join(OUTPUT, 'proof.json'))) {
+    const old = JSON.parse(fs.readFileSync(path.join(OUTPUT, 'proof.json'), 'utf8'));
+    const prior = old.result === 'failed' ? path.join(ROOT, '.local/compatibility-failed-attempt-' + runId) : path.join(OUTPUT, 'prior-capture');
+    fs.mkdirSync(prior, {recursive: true});
+    for (const name of ['proof.json', '01-extension-failure-warning.png', '02-extension-compatibility-report.png', 'visible-warning.json', 'visible-report.txt']) {
+      if (fs.existsSync(path.join(OUTPUT, name))) fs.copyFileSync(path.join(OUTPUT, name), path.join(prior, name));
+    }
+  }
   const report = {schema: 1, capturedAt: new Date().toISOString(), environment: 'Actual Android emulator WebView inside app.vstab',
-    fixture: {id: fixtureId, source: path.relative(ROOT, FIXTURE), activation: 'Deliberately throws Unsupported platform: android from activate(); test fixture only'},
-    proofMethod: 'Install a controlled real extension; ordinary IDE Reload Window and report commands; passive UI observation; read actual extension-host logs.',
+    fixture: {id: fixtureId, source: path.relative(ROOT, FIXTURE),
+      activation: 'The original onStartupFinished test extension deliberately throws Unsupported platform: android from activate(). No production extension is altered.'},
+    proofMethod: 'Install the original controlled real extension; ordinary IDE Reload Window, warning details and report/check commands; passive UI observation; read actual extension-host logs.',
     screenshots: [], checks: {}, limits: ['Covers activation failures in the Node extension host.',
       'Does not establish detection of arbitrary helper errors hidden after successful activation or failures in the separate browser-worker host.']};
   let client, seeded = false, registered = false, observerId;
   const notices = [];
   let failure;
   try {
+    report.apkPath = path.relative(ROOT, CANDIDATE);
+    report.apkSha256 = digest(fs.readFileSync(CANDIDATE));
+    if (EXPECTED_APK_SHA) assert.equal(report.apkSha256, EXPECTED_APK_SHA, 'The frozen candidate must match the expected APK hash.');
+    const expectedSha = EXPECTED_APK_SHA || report.apkSha256;
+    report.expectedApkSha256Source = EXPECTED_APK_SHA ? 'Explicit expected hash' : 'Independently hashed frozen candidate file';
+    const installedPath = adb(['shell', 'pm', 'path', APP]).toString().trim().split('\n').find(line => line.endsWith('/base.apk'))?.replace(/^package:/, '');
+    assert.ok(installedPath, 'The installed app must expose one base APK.');
+    report.installedApkSha256 = adb(['shell', 'sha256sum ' + quote(installedPath)]).toString().trim().split(/\s+/)[0];
+    assert.equal(report.installedApkSha256, expectedSha, 'The actual installed APK must be the frozen final candidate.');
+    report.checks.installedApkMatchesFrozenCandidate = true;
     client = await CDP.connect();
     const origin = await client.evaluate('location.origin');
     assert.equal(new URL(origin).hostname, 'localhost', 'Select a local Android workspace before running this proof.');
@@ -189,18 +253,22 @@ async function main() {
     report.checks.realExtensionInstalled = true;
     report.fixture.javascriptSha256 = digest(fs.readFileSync(path.join(FIXTURE, 'extension.js')));
 
-    await pause(5000);
-    if (!notices.length) await palette(client, 'Developer: Reload Window');
+    await pause(2000);
+    if (!notices.length) await reloadWorkbench(client);
     const deadline = Date.now() + 90000;
     while (!notices.length && Date.now() < deadline) await pause(300);
-    assert.equal(notices.length, 1, 'Exactly one visible failure notification must name the real failed extension.');
+    assert.ok(notices.length > 0, 'A visible failure notification must name the real failed extension.');
     report.warning = notices[0];
     report.checks.namedWarningVisible = notices[0].text.includes(fixtureId);
     report.checks.androidNativeReasonVisible = notices[0].text.includes('bundled native component cannot run on this Android device');
     report.checks.sshActionVisible = notices[0].actions.some(action => action.includes('Connect to SSH Host'));
+    if (!(await visibleFixtureNotifications(client)).length) await palette(client, 'Notifications: Show Notifications');
+    await client.waitFor(`document.querySelector('.notification-list-item') && [...document.querySelectorAll('.notification-list-item')].some(e => e.textContent.includes(${JSON.stringify(fixtureId)}))`);
+    report.visibleWarnings = await visibleFixtureNotifications(client);
+    assert.equal(report.visibleWarnings.length, 1, 'The notification center must hold one matching failure.');
     report.screenshots.push(await screenshot('01-extension-failure-warning.png'));
 
-    await client.clickText('Show details', '.notification-list-item .monaco-button');
+    await clickFixtureAction(client, 'Show details');
     const text = await currentReport(client);
     assert.ok(text.includes(fixtureId) && text.includes('Unsupported platform: android'), 'The actual report must contain the observed activation error.');
     report.reportText = redact(text).slice(0, 12000);
@@ -209,7 +277,7 @@ async function main() {
     await palette(client, 'vstab: Check Extension Failures Now');
     await palette(client, 'vstab: Check Extension Failures Now');
     await pause(2000);
-    assert.equal(notices.length, 1, 'Repeated checks must not create duplicate warnings.');
+    assert.equal((await visibleFixtureNotifications(client)).length, 0, 'After Show details dismisses the warning, repeated checks must not create another.');
     report.checks.repeatedChecksDeduplicated = true;
 
     const logs = appShell('find files/home/.local/share/vstab/user-data/logs -name remoteexthost.log').toString().trim().split('\n').filter(Boolean);
@@ -227,12 +295,12 @@ async function main() {
 
     // Re-reading a fresh host log after an ordinary reload must preserve warning
     // deduplication while the report continues to explain the failed extension.
-    await palette(client, 'Developer: Reload Window');
-    await pause(3000);
+    await reloadWorkbench(client);
+    await pause(2500);
     const reloadedText = await currentReport(client);
     await pause(1500);
     assert.ok(reloadedText.includes(fixtureId));
-    assert.equal(notices.length, 1, 'The same failure must remain deduplicated across a workbench reload.');
+    assert.equal((await visibleFixtureNotifications(client)).length, 0, 'The same failure must remain deduplicated across a workbench reload.');
     report.checks.reloadDeduplicated = true;
     report.screenshots.push(await screenshot('03-report-after-reload.png'));
   } catch (error) {
@@ -249,7 +317,7 @@ async function main() {
     if (client) {
       try { if (observerId) await client.send('Page.removeScriptToEvaluateOnNewDocument', {identifier: observerId}); } catch {}
       if (registered && report.checks.fixtureRemoved) {
-        try { await palette(client, 'Developer: Reload Window'); report.checks.cleanedWorkspaceReloaded = true; }
+        try { await reloadWorkbench(client); report.checks.cleanedWorkspaceReloaded = true; }
         catch (error) { report.cleanupReloadError = redact(error.message); failure ||= error; }
       }
       client.close();

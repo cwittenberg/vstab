@@ -3,7 +3,13 @@
 This first-party workspace extension owns named shells through a separate Node
 process and the backend's existing `node-pty` binding. The editor's terminal tabs
 are clients of those PTYs. Closing a tab detaches; **Stop Persistent Terminal**
-ends its shell. A reload/reconnect attaches to the same session and replays bounded
+ends its shell. Stop force-terminates the owned PTY shell with `SIGKILL` and
+acknowledges success only after the native exit notification. While termination
+is pending, the session stays visible as Stopping. If exit is not confirmed
+within five seconds, it retains a retryable error instead of disappearing.
+Where `/proc` is readable, Stop also kills same-user processes still belonging
+to that verified PTY OS session. Jobs deliberately detached into a different OS
+session are outside this guarantee. A reload/reconnect attaches to the same session and replays bounded
 output. It never replays terminal input or recreates a lost shell automatically.
 
 Install `extension/` as `lib/vscode/extensions/vstab-session-tools` in both the
@@ -26,6 +32,12 @@ session counts are bounded. Up to twelve sessions are retained per workspace.
 Output replay is bounded to 256 Ki UTF-16 code units per session, preserving
 surrogate boundaries. Exited shells retain their transcript until explicitly
 stopped; a daemon with no sessions exits after five minutes.
+
+The protocol is version 2. Its `vstab-pty-v2-*` runtime directory is separate
+from the unreleased version-1 engine, which may still own earlier sessions.
+Upgrading does not terminate those old processes or claim they ended; no
+version-1 migration is promised. New sessions and reconnections use the
+version-2 engine, and the client checks its authenticated protocol version.
 
 The socket and token live inside a mode-0700 runtime directory derived from the
 workspace and home paths, below `TMPDIR`; each socket authenticates before it can

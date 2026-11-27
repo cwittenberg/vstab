@@ -157,8 +157,8 @@ function activate(context) {
     getChildren(element) { return element ? [] : sessions; },
     getTreeItem(session) {
       const item = new vscode.TreeItem(session.name, vscode.TreeItemCollapsibleState.None);
-      item.id = session.id; item.description = session.exited ? 'Exited' : (views.has(session.id) ? 'Attached' : 'Detached');
-      item.tooltip = session.cwd + '\n' + (session.exited ? 'Transcript retained until stopped' : 'PID ' + session.pid + ' · close tab to detach');
+      item.id = session.id; item.description = session.stopping ? 'Stopping…' : session.stopError ? 'Stop failed · try again' : session.exited ? 'Exited' : (views.has(session.id) ? 'Attached' : 'Detached');
+      item.tooltip = session.stopError || session.cwd + '\n' + (session.exited ? 'Transcript retained until stopped' : 'PID ' + session.pid + ' · close tab to detach');
       item.iconPath = new vscode.ThemeIcon(session.exited ? 'terminal-decoration-error' : 'terminal');
       item.contextValue = 'vstabPersistentSession'; item.command = {command: 'vstab.sessions.attach', title: 'Attach', arguments: [session]}; return item;
     }
@@ -170,7 +170,7 @@ function activate(context) {
       const found = all.filter(s => remembered.includes(s.id));
       for (const session of found) createView(session);
       rememberedIds.clear(); for (const session of found) rememberedIds.add(session.id);
-      if (found.length < remembered.length) void vscode.window.showInformationMessage('Some persistent terminal processes ended. Their commands have not been rerun.');
+      if (found.length < remembered.length) void vscode.window.showInformationMessage('Some remembered sessions are unavailable in this terminal engine. An earlier engine may still own them; their commands have not been rerun.');
       void remember();
     }).catch(notify);
   }
