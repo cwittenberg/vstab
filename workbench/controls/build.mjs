@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 const require = createRequire(new URL('../local/package.json', import.meta.url));
 const {build} = require('esbuild');
 await build({
+  absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
   entryPoints: [fileURLToPath(new URL('./src/extension.cjs', import.meta.url))],
   outfile: fileURLToPath(new URL('./extension/extension.js', import.meta.url)),
   bundle: true, platform: 'browser', format: 'cjs', target: 'es2022',
