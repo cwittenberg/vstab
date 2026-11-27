@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="host" type="id" />
+    <item name="port" type="id" />
+    <item name="username" type="id" />
+    <item name="password" type="id" />
+    <item name="folder" type="id" />
+    <item name="passphrase" type="id" />
+    <item name="connect" type="id" />
+    <item name="connection_status" type="id" />
+    <item name="workbench" type="id" />
+    <item name="disconnect" type="id" />
+</resources>

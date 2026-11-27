@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exact geometry/colors converted from logo/vstab-original.svg.
+     Source SHA256: 948226defabc87df8b3a31a4a1ba2651887a57483b2a547aaeccbe1ae7259bf3 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp" android:height="48dp"
+    android:viewportWidth="512" android:viewportHeight="512">
+    <path android:fillColor="#3DDC84" android:pathData="M150,180 A106,106 0,0 1,362 180 Z" />
+    <path android:fillColor="@android:color/transparent"
+        android:strokeColor="#3DDC84" android:strokeWidth="16" android:strokeLineCap="round"
+        android:pathData="M183,99 L162,64 M329,99 L350,64" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M221,139 A10,10 0,1 0,201 139 A10,10 0,1 0,221 139 Z M311,139 A10,10 0,1 0,291 139 A10,10 0,1 0,311 139 Z" />
+    <path android:fillColor="#078BD7"
+        android:pathData="M99,199 H413 A44,44 0,0 1,457 243 V400 A44,44 0,0 1,413 444 H99 A44,44 0,0 1,55 400 V243 A44,44 0,0 1,99 199 Z" />
+    <path android:fillColor="#102B49"
+        android:pathData="M102,220 H410 A26,26 0,0 1,436 246 V397 A26,26 0,0 1,410 423 H102 A26,26 0,0 1,76 397 V246 A26,26 0,0 1,102 220 Z" />
+    <path android:fillColor="@android:color/transparent"
+        android:strokeColor="#29B6F6" android:strokeWidth="23"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M196,270 L141,321 L196,372 M316,270 L371,321 L316,372" />
+    <path android:fillColor="@android:color/transparent"
+        android:strokeColor="#3DDC84" android:strokeWidth="23"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M276,264 L236,378" />
+</vector>

@@ -1,0 +1,28 @@
+{
+  "SSH host with password authentication": {
+    "prefix": "host-password",
+    "description": "An SSH host that prompts for its password when connecting.",
+    "body": [
+      "Host ${1:workstation}",
+      "    HostName ${2:example.org}",
+      "    User ${3:developer}",
+      "    Port ${4:22}",
+      "    PreferredAuthentications password",
+      "$0"
+    ]
+  },
+  "SSH host with private key authentication": {
+    "prefix": "host-key",
+    "description": "An SSH host using a private key already imported onto this Android device.",
+    "body": [
+      "Host ${1:workstation}",
+      "    HostName ${2:example.org}",
+      "    User ${3:developer}",
+      "    Port ${4:22}",
+      "    IdentityFile \"${5:~/.ssh/id_ed25519}\"",
+      "    IdentitiesOnly yes",
+      "    PreferredAuthentications publickey,password",
+      "$0"
+    ]
+  }
+}

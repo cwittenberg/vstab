@@ -1,0 +1,69 @@
+{
+  "name": "SSH Configuration",
+  "scopeName": "source.ssh-config",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#host-rules" },
+    { "include": "#directives" },
+    { "include": "#values" }
+  ],
+  "repository": {
+    "comments": {
+      "name": "comment.line.number-sign.ssh-config",
+      "match": "(?<!\\\\)#.*$"
+    },
+    "host-rules": {
+      "begin": "^\\s*((?i:Host|Match))\\b",
+      "beginCaptures": { "1": { "name": "keyword.control.ssh-config" } },
+      "end": "$",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#quoted-strings" },
+        { "name": "keyword.operator.logical.ssh-config", "match": "!" },
+        { "name": "constant.other.host-pattern.ssh-config", "match": "[^\\s#\"'!]+" }
+      ]
+    },
+    "directives": {
+      "begin": "^\\s*([A-Za-z][A-Za-z0-9]*)\\b",
+      "beginCaptures": { "1": { "name": "support.type.property-name.ssh-config" } },
+      "end": "$",
+      "patterns": [{ "include": "#values" }]
+    },
+    "quoted-strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.ssh-config",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "name": "constant.character.escape.ssh-config", "match": "\\\\." },
+            { "include": "#expansions" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.ssh-config",
+          "begin": "'",
+          "end": "'",
+          "patterns": [{ "include": "#expansions" }]
+        }
+      ]
+    },
+    "expansions": {
+      "patterns": [
+        { "name": "variable.other.ssh-config", "match": "%[%dhprn]" },
+        { "name": "constant.language.home.ssh-config", "match": "~(?=/|$)" }
+      ]
+    },
+    "values": {
+      "patterns": [
+        { "include": "#quoted-strings" },
+        { "name": "constant.character.escape.ssh-config", "match": "\\\\." },
+        { "include": "#comments" },
+        { "include": "#expansions" },
+        { "name": "keyword.operator.assignment.ssh-config", "match": "=" },
+        { "name": "constant.language.boolean.ssh-config", "match": "\\b(?i:yes|no|none)\\b" },
+        { "name": "constant.numeric.ssh-config", "match": "\\b[0-9]+\\b" }
+      ]
+    }
+  }
+}

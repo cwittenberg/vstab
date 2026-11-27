@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "codeServerVersion": "4.146.0",
+  "codeVersion": "1.146.0",
+  "serverProductCommit": "9cc1033c190703416bbd5ec95d8f7db9f3edb63d",
+  "upstreamRepository": "https://github.com/microsoft/vscode",
+  "upstreamCommit": "69047191fc427f2f92828279aae1d90d8eeda7ab",
+  "downstreamRepository": "https://github.com/coder/code-server",
+  "downstreamRelease": "https://github.com/coder/code-server/releases/tag/v4.146.0",
+  "artifactUrl": "https://github.com/coder/code-server/releases/download/v4.146.0/code-server-4.146.0-linux-amd64.tar.gz",
+  "artifactSha256": "cf7e82ca5fe1df664d43a43d900c3c9710f8f3403a5e8d0e18f6a12d10d7401b",
+  "browserDependencies": [
+    "@microsoft/1ds-core-js", "@microsoft/1ds-post-js",
+    "@microsoft/applicationinsights-core-js", "@microsoft/applicationinsights-shims",
+    "@vscode/iconv-lite-umd", "@vscode/tree-sitter-wasm",
+    "@vscode/vscode-languagedetection", "@xterm/addon-clipboard",
+    "@xterm/addon-image", "@xterm/addon-ligatures", "@xterm/addon-progress",
+    "@xterm/addon-search", "@xterm/addon-serialize", "@xterm/addon-unicode11",
+    "@xterm/addon-webgl", "@xterm/xterm", "jschardet", "katex", "tas-client",
+    "vscode-oniguruma", "vscode-textmate"
+  ]
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>VSTab — Android coding icon</title>
+<g fill="#3ddc84"><path d="M150 180a106 106 0 0 1 212 0Z"/><path d="m183 99-21-35m167 35 21-35" stroke="#3ddc84" stroke-width="16" stroke-linecap="round"/></g>
+<g fill="#fff"><circle cx="211" cy="139" r="10"/><circle cx="301" cy="139" r="10"/></g>
+<rect x="55" y="199" width="402" height="245" rx="44" fill="#078bd7"/>
+<rect x="76" y="220" width="360" height="203" rx="26" fill="#102b49"/>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="23"><path d="m196 270-55 51 55 51m120-102 55 51-55 51" stroke="#29b6f6"/><path d="m276 264-40 114" stroke="#3ddc84"/></g>
+</svg>

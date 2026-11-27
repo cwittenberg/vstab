@@ -1,0 +1,90 @@
+{
+  "name": "persistent-terminals",
+  "publisher": "vstab",
+  "displayName": "vstab Persistent Terminals",
+  "description": "Named project terminals that reconnect without rerunning their commands.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "main": "./extension.cjs",
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Creating a shell requires Workspace Trust."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "vstab.sessions.create",
+        "title": "New Persistent Terminal...",
+        "category": "vstab",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vstab.sessions.attach",
+        "title": "Attach to Persistent Terminal...",
+        "category": "vstab"
+      },
+      {
+        "command": "vstab.sessions.rename",
+        "title": "Rename Persistent Terminal...",
+        "category": "vstab"
+      },
+      {
+        "command": "vstab.sessions.stop",
+        "title": "Stop Persistent Terminal...",
+        "category": "vstab"
+      },
+      {
+        "command": "vstab.sessions.refresh",
+        "title": "Refresh Persistent Terminals",
+        "category": "vstab",
+        "icon": "$(refresh)"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "vstab.persistentTerminals",
+          "name": "Persistent Terminals",
+          "when": "workspaceFolderCount != 0"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "vstab.sessions.create",
+          "when": "view == vstab.persistentTerminals",
+          "group": "navigation"
+        },
+        {
+          "command": "vstab.sessions.refresh",
+          "when": "view == vstab.persistentTerminals",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "vstab.sessions.rename",
+          "when": "view == vstab.persistentTerminals && viewItem == vstabPersistentSession",
+          "group": "session@1"
+        },
+        {
+          "command": "vstab.sessions.stop",
+          "when": "view == vstab.persistentTerminals && viewItem == vstabPersistentSession",
+          "group": "session@2"
+        }
+      ]
+    }
+  }
+}

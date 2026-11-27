@@ -1,0 +1,121 @@
+const EXTENSION_ID = 'vstab.android-controls';
+const MAX_BYTES = 512 * 1024;
+const MAX_PENDING = 64;
+const METHODS = new Set([
+  'ssh.getState', 'ssh.readConfig', 'ssh.writeConfig', 'ssh.addHost', 'ssh.removeHost',
+  'ssh.connect', 'ssh.disconnect', 'ssh.reconnect', 'ssh.listDirectory', 'ssh.openFolder',
+  'ssh.importKey', 'ssh.respondPrompt', 'workspace.local', 'app.about', 'window.new',
+  'documents.getState', 'documents.pickFolder', 'documents.pickFile', 'documents.openApproved', 'documents.sync', 'documents.resolve'
+]);
+const encodedSize = value => new TextEncoder().encode(value).byteLength;
+
+/** Connect one first-party browser extension worker to Android's scoped port. */
+export function createNativeControlIntegration({
+  hostWindow = window,
+  expectedOrigin = hostWindow.location.origin,
+  channelFactory = () => new MessageChannel(),
+  requestTimeoutMs = 120000
+} = {}) {
+  if (hostWindow.location.origin !== expectedOrigin) throw new Error('The SSH control origin changed.');
+  const url = new URL(expectedOrigin);
+  if (url.protocol !== 'http:' || !['localhost', '127.0.0.1', '127.0.0.2', '127.0.0.3', '127.0.0.4'].includes(url.hostname) || !url.port) {
+    throw new Error('SSH controls require the bundled loopback workbench.');
+  }
+  const channel = channelFactory();
+  const pending = new Map();
+  let nativePort;
+  let disposed = false;
+
+  function reply(message) { if (!disposed) channel.port2.postMessage(message); }
+  function fail(id, code, message) {
+    const item = pending.get(id);
+    if (item) { clearTimeout(item.timer); pending.delete(id); }
+    reply({v: 1, id, ok: false, error: {code, message}});
+  }
+  function nativeMessage(event) {
+    if (disposed || typeof event.data !== 'string' || encodedSize(event.data) > MAX_BYTES) return;
+    let message;
+    try { message = JSON.parse(event.data); } catch { return; }
+    if (!message || message.v !== 1) return;
+    if (message.event === 'stateChanged' || message.event === 'configChanged' || message.event === 'sshPrompt') {
+      if (!Object.hasOwn(message, 'id')) reply(message);
+      return;
+    }
+    const item = pending.get(message.id);
+    if (!item || typeof message.ok !== 'boolean') return;
+    clearTimeout(item.timer); pending.delete(message.id);
+    reply(message);
+  }
+  function handshake(event) {
+    if (disposed || event.data !== 'vstab-ssh-ready' || event.ports?.length !== 1 ||
+        (event.source !== null && event.source !== hostWindow) ||
+        (event.origin && event.origin !== 'null' && event.origin !== expectedOrigin)) return;
+    // A cached local workbench receives a new native endpoint when resumed.
+    if (nativePort) {
+      nativePort.close();
+      for (const id of [...pending.keys()]) fail(id, 'SessionChanged', 'The native SSH control session changed. Retry the request.');
+    }
+    nativePort = event.ports[0];
+    const endpoint = nativePort;
+    nativePort.onmessage = message => { if (nativePort === endpoint) nativeMessage(message); };
+    nativePort.start?.();
+    for (const item of pending.values()) {
+      nativePort.postMessage(item.body);
+      item.body = undefined;
+    }
+  }
+  hostWindow.addEventListener('message', handshake);
+  channel.port2.onmessage = event => {
+    const message = event.data;
+    if (disposed || !message || message.v !== 1 || !Number.isSafeInteger(message.id) || message.id < 1) return;
+    if (!METHODS.has(message.method) || !message.params || typeof message.params !== 'object' || Array.isArray(message.params)) {
+      fail(message.id, 'NoPermissions', 'Unsupported SSH control request.'); return;
+    }
+    if (message.method === 'ssh.respondPrompt' && Object.hasOwn(message.params, 'value') &&
+        (typeof message.params.value !== 'string' || encodedSize(message.params.value) > 16 * 1024)) {
+      fail(message.id, 'NoPermissions', 'Invalid SSH prompt response.'); return;
+    }
+    if (pending.has(message.id)) {
+      // Do not dispatch an operation twice or overwrite its first correlation.
+      return;
+    }
+    if (pending.size >= MAX_PENDING) {
+      fail(message.id, 'Unavailable', 'Too many SSH control requests.'); return;
+    }
+    let body;
+    try { body = JSON.stringify(message); }
+    catch { fail(message.id, 'NoPermissions', 'SSH control request is not serializable.'); return; }
+    if (encodedSize(body) > MAX_BYTES) {
+      fail(message.id, 'Unavailable', 'SSH control request exceeds the message limit.'); return;
+    }
+    const item = {body, timer: setTimeout(() => fail(message.id, 'Unavailable',
+      nativePort ? 'The native SSH operation timed out.' : 'The native SSH control channel did not become ready.'), requestTimeoutMs)};
+    pending.set(message.id, item);
+    if (nativePort) {
+      try { nativePort.postMessage(body); item.body = undefined; }
+      catch { fail(message.id, 'SessionChanged', 'The native SSH control channel is closed.'); }
+    }
+  };
+  channel.port2.start?.();
+  return {
+    options: {messagePorts: new Map([[EXTENSION_ID, channel.port1]])},
+    dispose() {
+      if (disposed) return;
+      for (const id of [...pending.keys()]) fail(id, 'Unavailable', 'The SSH control workbench was closed.');
+      disposed = true;
+      hostWindow.removeEventListener('message', handshake);
+      nativePort?.close(); channel.port1.close(); channel.port2.close();
+    }
+  };
+}
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  const integration = createNativeControlIntegration();
+  globalThis.__vstabControlOptions = integration.options;
+  globalThis.addEventListener('pagehide', () => integration.dispose(), {once: true});
+  const baseValue = document.getElementById('vscode-workbench-web-base-url')?.getAttribute('data-settings');
+  if (!baseValue) throw new Error('The bundled Code OSS base URL is missing.');
+  const base = new URL(baseValue.replace(/\/$/, '') + '/', location.href);
+  if (base.origin !== location.origin) throw new Error('The bundled editor must use its native app origin.');
+  await import(new URL('out/vs/code/browser/workbench/workbench.js', base).href);
+}

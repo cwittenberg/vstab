@@ -1,0 +1,40 @@
+# Local downloads, SDKs, emulators, credentials and generated evidence.
+/.local/
+/artifacts/
+/dist/
+
+# Dependencies and tool caches.
+node_modules/
+__pycache__/
+*.py[cod]
+.gradle/
+.idea/
+*.iml
+.DS_Store
+
+# Android build outputs and machine-specific settings.
+/android/local.properties
+/android/**/build/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Private environment configuration.
+.env
+.env.*
+!.env.example
+
+# Browser bundles and copied notices are rebuilt from maintained sources.
+/workbench/controls/extension/extension.js
+/workbench/local/extension/extension.js
+/workbench/local/extension/UPSTREAM-LICENSE.txt
+/workbench/local/extension/IGNORE-LICENSE.txt
+
+# Generated build/qualification reports; source input locks remain tracked.
+/release/android-addons.lock.json
+/release/android-backend.json
+/release/android-server-patches.json
+/release/android-addon-loader-patches.json
+/release/android-runtime-qualification.json
+/release/workbench-build.json

@@ -1,0 +1,15 @@
+{
+  "comments": { "lineComment": "#" },
+  "brackets": [["[", "]"]],
+  "autoClosingPairs": [
+    { "open": "\"", "close": "\"", "notIn": ["string", "comment"] },
+    { "open": "'", "close": "'", "notIn": ["string", "comment"] }
+  ],
+  "surroundingPairs": [["\"", "\""], ["'", "'"]],
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*(?:[Hh][Oo][Ss][Tt]|[Mm][Aa][Tt][Cc][Hh])\\s+.*$",
+      "action": { "indent": "indent" }
+    }
+  ]
+}

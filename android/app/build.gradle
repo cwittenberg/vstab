@@ -1,0 +1,78 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.vstab'
+    compileSdk 36
+    buildToolsVersion '36.0.0'
+    defaultConfig {
+        applicationId 'app.vstab'
+        minSdk 29
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    buildFeatures { buildConfig true }
+    buildTypes { release { minifyEnabled false } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    sourceSets { main { assets.srcDir layout.buildDirectory.dir('generated/serverAssets') } }
+    packaging {
+        jniLibs { useLegacyPackaging = true; keepDebugSymbols += ['**/*.so'] }
+        resources.excludes += ['META-INF/versions/**', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt']
+    }
+    lint { abortOnError true }
+}
+
+def prepareServerAssets = tasks.register('prepareServerAssets', Exec) {
+    workingDir '../..'
+    commandLine 'python3', 'scripts/package-server-assets.py', '--output',
+            layout.buildDirectory.dir('generated/serverAssets').get().asFile.absolutePath
+    inputs.file('../../server/bootstrap.sh')
+    inputs.file('../../scripts/package-server-assets.py')
+    inputs.dir('../../workbench/session-tools/extension')
+    inputs.dir('../../workbench/compatibility/extension')
+    outputs.dir(layout.buildDirectory.dir('generated/serverAssets'))
+}
+def prepareWorkbenchAssets = tasks.register('prepareWorkbenchAssets', Sync) {
+    from('../../.local/workbench-assets')
+    into(layout.buildDirectory.dir('generated/workbenchAssets'))
+    doFirst {
+        if (!file('../../.local/workbench-assets/workbench/bundle.json').isFile()) {
+            throw new GradleException('Missing bundled Code OSS assets. Run python3 scripts/package-workbench.py first.')
+        }
+    }
+}
+android.sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/workbenchAssets'))
+def prepareLocalRuntimeAssets = tasks.register('prepareLocalRuntimeAssets', Sync) {
+    from('../../.local/android-runtime/assets')
+    into(layout.buildDirectory.dir('generated/localRuntimeAssets'))
+    doFirst {
+        if (!file('../../.local/android-runtime/assets/local-runtime/runtime.json').isFile()) {
+            throw new GradleException('Missing bundled Android runtime. Follow native-runtime/README.md before building the APK.')
+        }
+    }
+}
+def prepareLocalRuntimeLibraries = tasks.register('prepareLocalRuntimeLibraries', Sync) {
+    from('../../.local/android-runtime/jniLibs')
+    into(layout.buildDirectory.dir('generated/localRuntimeLibraries'))
+    doFirst {
+        ['arm64-v8a', 'x86_64'].each { abi ->
+            ['node', 'bash', 'git', 'rg', 'npm', 'npx', 'pty', 'watcher', 'vscode-sqlite3', 'argon2'].each { name ->
+                if (!file("../../.local/android-runtime/jniLibs/${abi}/lib${name}.so").isFile()) {
+                    throw new GradleException("Missing Android runtime library ${abi}/lib${name}.so. Follow native-runtime/README.md.")
+                }
+            }
+        }
+    }
+}
+android.sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/localRuntimeAssets'))
+android.sourceSets.main.jniLibs.srcDir(layout.buildDirectory.dir('generated/localRuntimeLibraries'))
+tasks.named('preBuild').configure { dependsOn prepareServerAssets, prepareWorkbenchAssets, prepareLocalRuntimeAssets, prepareLocalRuntimeLibraries }
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    implementation 'com.github.mwiede:jsch:2.28.8'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.87'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'junit:junit:4.13.2'
+}

@@ -1,0 +1,357 @@
+{
+  "schema": 1,
+  "source": "https://packages-cf.termux.dev/apt/termux-main",
+  "signingKey": "CC72CF8BA7DBFA0182877D045A897D96E57CF20C",
+  "architectures": {
+    "arm64-v8a": {
+      "termuxArchitecture": "aarch64",
+      "indexSha256": "b49c41f085f087b096a3ae21e30492e1e7a9b6a07cb151dcd827a3ebf799041c",
+      "inReleaseSha256": "2c342a621660994f3187ef16cec4f5d1efb4f560f15a49c6718d9e7ca3ee4241",
+      "packages": [
+        {
+          "Package": "nodejs-lts",
+          "Version": "24.22.3",
+          "Filename": "pool/main/n/nodejs-lts/nodejs-lts_24.22.3_aarch64.deb",
+          "SHA256": "80edcc73db025db0baa09be27e3d65a16e6f2a72ab925f1873a1b808ab857c28",
+          "Size": "10000924"
+        },
+        {
+          "Package": "npm",
+          "Version": "12.2.3",
+          "Filename": "pool/main/n/npm/npm_12.2.3_all.deb",
+          "SHA256": "b867b6d931c1e6e44e3d038332dd85a0cb7b181690bc82b7f63b5f91e2b95e17",
+          "Size": "2072908"
+        },
+        {
+          "Package": "bash",
+          "Version": "5.3.20",
+          "Filename": "pool/main/b/bash/bash_5.3.20_aarch64.deb",
+          "SHA256": "26b5b3ab5b0ac0e3b372ac1e7ddd89270519c1eb25b88fe4175485c2de8086b2",
+          "Size": "956852"
+        },
+        {
+          "Package": "git",
+          "Version": "2.56.1",
+          "Filename": "pool/main/g/git/git_2.56.1_aarch64.deb",
+          "SHA256": "3343f56fc99e2f0631a553a39789769495435cb07b6ffb3c71a7fcb7bd561e95",
+          "Size": "4566396"
+        },
+        {
+          "Package": "ripgrep",
+          "Version": "16.0.0",
+          "Filename": "pool/main/r/ripgrep/ripgrep_16.0.0_aarch64.deb",
+          "SHA256": "b24d44fd66baf62aeee78c12fabe9dcac6424add0daa271645312d4276be9f59",
+          "Size": "1244464"
+        },
+        {
+          "Package": "readline",
+          "Version": "8.3.6",
+          "Filename": "pool/main/r/readline/readline_8.3.6_aarch64.deb",
+          "SHA256": "616cc73009bc0223f61caed8dd09455714455aa5ea5e180126e2f69c4c775136",
+          "Size": "294164"
+        },
+        {
+          "Package": "ncurses",
+          "Version": "6.6.20260307+really6.5.20250830",
+          "Filename": "pool/main/n/ncurses/ncurses_6.6.20260307+really6.5.20250830_aarch64.deb",
+          "SHA256": "f44bbfdc3d42ec0217bffa978309390e59cea5a48a9a83226d4a496c42ad0b99",
+          "Size": "557792"
+        },
+        {
+          "Package": "libiconv",
+          "Version": "1.19.1",
+          "Filename": "pool/main/libi/libiconv/libiconv_1.19.1_aarch64.deb",
+          "SHA256": "a1c6323eff4f660e16ae6f5832356444b3269c19a4f61146355a49e7c4be5ed1",
+          "Size": "562252"
+        },
+        {
+          "Package": "libandroid-support",
+          "Version": "29-1",
+          "Filename": "pool/main/liba/libandroid-support/libandroid-support_29-1_aarch64.deb",
+          "SHA256": "f2f145d6135ad4843ac9670153be3e3944dc1e6f1736d46d2306c28f2b86f517",
+          "Size": "10880"
+        },
+        {
+          "Package": "libcurl",
+          "Version": "8.23.0",
+          "Filename": "pool/main/libc/libcurl/libcurl_8.23.0_aarch64.deb",
+          "SHA256": "2011bb9709261bb3d5ecaa6672faa333be14cf48ad4af37031e3e365309557ac",
+          "Size": "1043340"
+        },
+        {
+          "Package": "openssl",
+          "Version": "1:3.6.5",
+          "Filename": "pool/main/o/openssl/openssl_1:3.6.5_aarch64.deb",
+          "SHA256": "a2fb7856875e63ef6b90442752e05974813372c3ca86d2513a78ea43c67a0f8b",
+          "Size": "2482764"
+        },
+        {
+          "Package": "zlib",
+          "Version": "1.4",
+          "Filename": "pool/main/z/zlib/zlib_1.4_aarch64.deb",
+          "SHA256": "e3027565ae50bcd8ba5113c988b589754ae192c9cc3e6afbe3e4ed7c06b2598e",
+          "Size": "63780"
+        },
+        {
+          "Package": "pcre2",
+          "Version": "10.49",
+          "Filename": "pool/main/p/pcre2/pcre2_10.49_aarch64.deb",
+          "SHA256": "c27995e5f52b8ecc9b8b3e662eb08e49f82a18bfd3f34343936acc7b23964724",
+          "Size": "1001320"
+        },
+        {
+          "Package": "libexpat",
+          "Version": "2.11.0",
+          "Filename": "pool/main/libe/libexpat/libexpat_2.11.0_aarch64.deb",
+          "SHA256": "ac744cb7cd047997da4410ca11d356ca9c952aa474b14a0032414d5677e0fbf1",
+          "Size": "106144"
+        },
+        {
+          "Package": "libnghttp2",
+          "Version": "1.71.0",
+          "Filename": "pool/main/libn/libnghttp2/libnghttp2_1.71.0_aarch64.deb",
+          "SHA256": "ae33e7b21e0636be8686b9b13a20e31267f047f69cb26b4befd70c9a9bae221e",
+          "Size": "96396"
+        },
+        {
+          "Package": "libnghttp3",
+          "Version": "1.19.0",
+          "Filename": "pool/main/libn/libnghttp3/libnghttp3_1.19.0_aarch64.deb",
+          "SHA256": "8bb6fa31f9281cd48047ec9a571cadf153538f5b38f0203ad7a4e221344b14a6",
+          "Size": "69948"
+        },
+        {
+          "Package": "libngtcp2",
+          "Version": "1.26.0",
+          "Filename": "pool/main/libn/libngtcp2/libngtcp2_1.26.0_aarch64.deb",
+          "SHA256": "8225ecde58104ef5aa234fa54a1bea5051a8a9ef2937e5ba996b3e8dda68c8eb",
+          "Size": "175116"
+        },
+        {
+          "Package": "libssh2",
+          "Version": "1.11.1-2",
+          "Filename": "pool/main/libs/libssh2/libssh2_1.11.1-2_aarch64.deb",
+          "SHA256": "1add4e0a926b848814e7e2f1817ea28b123c54cabd5bbc4e5cfd65291cbad84e",
+          "Size": "219220"
+        },
+        {
+          "Package": "c-ares",
+          "Version": "1.34.9",
+          "Filename": "pool/main/c/c-ares/c-ares_1.34.9_aarch64.deb",
+          "SHA256": "623d84855e176f3f2a415d24c0e1d2f529356f4b5439bb3313e6d7ff0da4585c",
+          "Size": "200208"
+        },
+        {
+          "Package": "libicu",
+          "Version": "79.1",
+          "Filename": "pool/main/libi/libicu/libicu_79.1_aarch64.deb",
+          "SHA256": "83c980a010e957738e3567127801d66a1b9bd7e404a4fda98788048ee57d606c",
+          "Size": "10312036"
+        },
+        {
+          "Package": "libc++",
+          "Version": "30",
+          "Filename": "pool/main/libc/libc++/libc++_30_aarch64.deb",
+          "SHA256": "53d0b84a7ba7459024257cb94d5b136fe13ef858567f65a8064b35950799f2ca",
+          "Size": "341604"
+        },
+        {
+          "Package": "libsqlite",
+          "Version": "3.54.1-1",
+          "Filename": "pool/main/libs/libsqlite/libsqlite_3.54.1-1_aarch64.deb",
+          "SHA256": "661fb995f7215845007b222a85266ae99d9443e87e0604f8677edfd738e6b81a",
+          "Size": "768888"
+        },
+        {
+          "Package": "ca-certificates",
+          "Version": "1:2026.11.05-1",
+          "Filename": "pool/main/c/ca-certificates/ca-certificates_1:2026.11.05-1_all.deb",
+          "SHA256": "12fc350fc5ad638338b06b04835bce897615f8c93f96d30ac396cdb39b850c6b",
+          "Size": "110148"
+        },
+        {
+          "Package": "termux-licenses",
+          "Version": "2.2",
+          "Filename": "pool/main/t/termux-licenses/termux-licenses_2.2_all.deb",
+          "SHA256": "a3265cd1cf7d04754f2fb683eaf5b21918263792fd714457127900c1d6d9bcd9",
+          "Size": "52276"
+        }
+      ]
+    },
+    "x86_64": {
+      "termuxArchitecture": "x86_64",
+      "indexSha256": "6f5ce0ab48c3043ec60704fc215724d29daf5a52e20635173700bfe160485903",
+      "inReleaseSha256": "2c342a621660994f3187ef16cec4f5d1efb4f560f15a49c6718d9e7ca3ee4241",
+      "packages": [
+        {
+          "Package": "nodejs-lts",
+          "Version": "24.22.3",
+          "Filename": "pool/main/n/nodejs-lts/nodejs-lts_24.22.3_x86_64.deb",
+          "SHA256": "d73ab1303aa1a8ecca188795f536279c7ef196c4e3f72b645e443501b03247e4",
+          "Size": "10434768"
+        },
+        {
+          "Package": "npm",
+          "Version": "12.2.3",
+          "Filename": "pool/main/n/npm/npm_12.2.3_all.deb",
+          "SHA256": "b867b6d931c1e6e44e3d038332dd85a0cb7b181690bc82b7f63b5f91e2b95e17",
+          "Size": "2072908"
+        },
+        {
+          "Package": "bash",
+          "Version": "5.3.20",
+          "Filename": "pool/main/b/bash/bash_5.3.20_x86_64.deb",
+          "SHA256": "f8c984e68269df3df2efae9f2835a9d9af381a8f80d08b34160772bc16cd0910",
+          "Size": "989716"
+        },
+        {
+          "Package": "git",
+          "Version": "2.56.1",
+          "Filename": "pool/main/g/git/git_2.56.1_x86_64.deb",
+          "SHA256": "c2b2e63b090c979ebedfb8610a06b87f052a9ce0477dd0a3a9d5bb9171c4550b",
+          "Size": "4655400"
+        },
+        {
+          "Package": "ripgrep",
+          "Version": "16.0.0",
+          "Filename": "pool/main/r/ripgrep/ripgrep_16.0.0_x86_64.deb",
+          "SHA256": "b7cdac7b0d739a2d27777b6f33aae0c11c331424f98e99ff3ca3c09c82f5a56d",
+          "Size": "1414620"
+        },
+        {
+          "Package": "readline",
+          "Version": "8.3.6",
+          "Filename": "pool/main/r/readline/readline_8.3.6_x86_64.deb",
+          "SHA256": "e9684798d13ede05f785315f68d3ff739563db2abef0e73db4dc9b8e17ded368",
+          "Size": "302176"
+        },
+        {
+          "Package": "ncurses",
+          "Version": "6.6.20260307+really6.5.20250830",
+          "Filename": "pool/main/n/ncurses/ncurses_6.6.20260307+really6.5.20250830_x86_64.deb",
+          "SHA256": "3f30f53c6a41c8450d146d4d42611a44be6ba0a8de1e8bb4dc903109a5fc3ff1",
+          "Size": "570036"
+        },
+        {
+          "Package": "libiconv",
+          "Version": "1.19.1",
+          "Filename": "pool/main/libi/libiconv/libiconv_1.19.1_x86_64.deb",
+          "SHA256": "3eb0c454676ad24d26c79601721b2eb3f9485c611ad0179fb86b17229344f46d",
+          "Size": "564832"
+        },
+        {
+          "Package": "libandroid-support",
+          "Version": "29-1",
+          "Filename": "pool/main/liba/libandroid-support/libandroid-support_29-1_x86_64.deb",
+          "SHA256": "665900760c05959ec076082a0941f05bd452f301e5a70bdfa7383fd3404d44d5",
+          "Size": "10968"
+        },
+        {
+          "Package": "libcurl",
+          "Version": "8.23.0",
+          "Filename": "pool/main/libc/libcurl/libcurl_8.23.0_x86_64.deb",
+          "SHA256": "fa71ce8eca3d0aa48a748fc60e4519351fc9c4d51b20cac5722190cb002cfd1c",
+          "Size": "1084840"
+        },
+        {
+          "Package": "openssl",
+          "Version": "1:3.6.5",
+          "Filename": "pool/main/o/openssl/openssl_1:3.6.5_x86_64.deb",
+          "SHA256": "540f144592d23d35672976e175ede1b5d8cf464f153f646df5d4e6dcd8491a15",
+          "Size": "2164136"
+        },
+        {
+          "Package": "zlib",
+          "Version": "1.4",
+          "Filename": "pool/main/z/zlib/zlib_1.4_x86_64.deb",
+          "SHA256": "55ab8f16e492d6ed03c2e2bf701af52cf54a313442dd7adedd3d6f3e3eba2e4f",
+          "Size": "74188"
+        },
+        {
+          "Package": "pcre2",
+          "Version": "10.49",
+          "Filename": "pool/main/p/pcre2/pcre2_10.49_x86_64.deb",
+          "SHA256": "4a6f66ac12565342897ce9b5cd11ba8ce6fce1fd1a91ae679c3468d7fc2ee541",
+          "Size": "1061556"
+        },
+        {
+          "Package": "libexpat",
+          "Version": "2.11.0",
+          "Filename": "pool/main/libe/libexpat/libexpat_2.11.0_x86_64.deb",
+          "SHA256": "0e703576d59ac8bd4d3592786ac7932338fea8bdce032d052bf0edbc6dce8675",
+          "Size": "113088"
+        },
+        {
+          "Package": "libnghttp2",
+          "Version": "1.71.0",
+          "Filename": "pool/main/libn/libnghttp2/libnghttp2_1.71.0_x86_64.deb",
+          "SHA256": "9bc1791438de6380038835cbd10c9cede716212cc32e37eb54407cd24f6605d6",
+          "Size": "98824"
+        },
+        {
+          "Package": "libnghttp3",
+          "Version": "1.19.0",
+          "Filename": "pool/main/libn/libnghttp3/libnghttp3_1.19.0_x86_64.deb",
+          "SHA256": "b3fa3f6117a8d2c1e5c6535f733282c077d39760b79bd08eac4ffba8da7bc0e6",
+          "Size": "73208"
+        },
+        {
+          "Package": "libngtcp2",
+          "Version": "1.26.0",
+          "Filename": "pool/main/libn/libngtcp2/libngtcp2_1.26.0_x86_64.deb",
+          "SHA256": "9a4ba347834cf4593cd80df9c9ad4caaf0486946ac0e1a812d10f0d712b5eae2",
+          "Size": "192756"
+        },
+        {
+          "Package": "libssh2",
+          "Version": "1.11.1-2",
+          "Filename": "pool/main/libs/libssh2/libssh2_1.11.1-2_x86_64.deb",
+          "SHA256": "00db1c1497e8703281efded7f1f2a63824b145c980d9ec309ae0ab7ccb9ce1c5",
+          "Size": "223300"
+        },
+        {
+          "Package": "c-ares",
+          "Version": "1.34.9",
+          "Filename": "pool/main/c/c-ares/c-ares_1.34.9_x86_64.deb",
+          "SHA256": "ac96c37fcc9181d1a7095f60485457fe6c3d784a83b0e8e6e7af9b3bfceda237",
+          "Size": "210984"
+        },
+        {
+          "Package": "libicu",
+          "Version": "79.1",
+          "Filename": "pool/main/libi/libicu/libicu_79.1_x86_64.deb",
+          "SHA256": "541410d7b425ebde5d4027c86218081925b15dc1e5cffaa45449bdc4b2256251",
+          "Size": "10409436"
+        },
+        {
+          "Package": "libc++",
+          "Version": "30",
+          "Filename": "pool/main/libc/libc++/libc++_30_x86_64.deb",
+          "SHA256": "c9bcd9a8067a19c9c0e4893a72d314a2e37d6b67ce8dd05c67b9bbacad044b4f",
+          "Size": "367792"
+        },
+        {
+          "Package": "libsqlite",
+          "Version": "3.54.1-1",
+          "Filename": "pool/main/libs/libsqlite/libsqlite_3.54.1-1_x86_64.deb",
+          "SHA256": "497471806378934fec8a6f3b5db70cf52a3652828786a241e2e37eebc19112b0",
+          "Size": "815224"
+        },
+        {
+          "Package": "ca-certificates",
+          "Version": "1:2026.11.05-1",
+          "Filename": "pool/main/c/ca-certificates/ca-certificates_1:2026.11.05-1_all.deb",
+          "SHA256": "12fc350fc5ad638338b06b04835bce897615f8c93f96d30ac396cdb39b850c6b",
+          "Size": "110148"
+        },
+        {
+          "Package": "termux-licenses",
+          "Version": "2.2",
+          "Filename": "pool/main/t/termux-licenses/termux-licenses_2.2_all.deb",
+          "SHA256": "a3265cd1cf7d04754f2fb683eaf5b21918263792fd714457127900c1d6d9bcd9",
+          "Size": "52276"
+        }
+      ]
+    }
+  }
+}

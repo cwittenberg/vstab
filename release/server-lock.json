@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "codeServerVersion": "4.146.0",
+  "codeVersion": "1.146.0",
+  "release": "https://github.com/coder/code-server/releases/tag/v4.146.0",
+  "assets": {
+    "linux-amd64": {
+      "url": "https://github.com/coder/code-server/releases/download/v4.146.0/code-server-4.146.0-linux-amd64.tar.gz",
+      "sha256": "cf7e82ca5fe1df664d43a43d900c3c9710f8f3403a5e8d0e18f6a12d10d7401b"
+    },
+    "linux-arm64": {
+      "url": "https://github.com/coder/code-server/releases/download/v4.146.0/code-server-4.146.0-linux-arm64.tar.gz",
+      "sha256": "3df88f7f1feecce3583ab0109c5f6bf14f90ae3a44939b4257ccd9850ef37a6e"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name="app.vstab.DocumentFixtureActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+        <!-- Test APK only: a real Android DocumentsProvider for SAF integration and
+             repeatable device screenshots. Never packaged in the production app. -->
+        <provider
+            android:name="app.vstab.TestDocumentsProvider"
+            android:authorities="app.vstab.test.documents"
+            android:exported="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS"
+            android:grantUriPermissions="true">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+    </application>
+</manifest>

@@ -1,0 +1,22 @@
+{
+  "name": "extension-compatibility",
+  "publisher": "vstab",
+  "displayName": "vstab Extension Compatibility",
+  "description": "Explains extension activation failures on Android and SSH hosts.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "engines": { "vscode": "^1.96.0" },
+  "main": "./extension.js",
+  "extensionKind": ["workspace"],
+  "activationEvents": ["onStartupFinished"],
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": { "supported": true }
+  },
+  "contributes": {
+    "commands": [
+      { "command": "vstab.compatibility.showReport", "title": "Show Extension Compatibility Report", "category": "vstab" },
+      { "command": "vstab.compatibility.checkNow", "title": "Check Extension Failures Now", "category": "vstab" }
+    ]
+  }
+}

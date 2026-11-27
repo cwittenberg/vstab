@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "codeServerVersion": "4.146.0",
+  "codeVersion": "1.146.0",
+  "codeCommit": "9cc1033c190703416bbd5ec95d8f7db9f3edb63d",
+  "archiveSha256": "cf7e82ca5fe1df664d43a43d900c3c9710f8f3403a5e8d0e18f6a12d10d7401b",
+  "files": {
+    "out/server-main.js": "0aff88708c647a71dc284100d7cbb46c5e3e482e3029057d697ebdaa2cf2757f",
+    "out/bootstrap-fork.js": "5afcfaca8ad27174d36ffdac3ea6f3c818bfa184703ef40b842cefd37a931ec6",
+    "out/server-cli.js": "890b7e5144cdc7bd8d26710fc1bb27ecb46c60234a0e556b771bf71239502c1b",
+    "out/vs/platform/terminal/node/ptyHostMain.js": "8e8683be6db64989c34f97ff2f34be7781e20df316285a8f3efcbb8fdddc2752",
+    "out/vs/workbench/api/node/extensionHostProcess.js": "8bdda5770248bfea0de1b6019c978e8a9eec17ff261acd2f0612b79e658e06ad",
+    "node_modules/@vscode/ripgrep-universal/lib/index.js": "30672bc932ac56dbdef15c88b205565697db2c5bbed3607d3d46d6f8478f200f"
+  }
+}

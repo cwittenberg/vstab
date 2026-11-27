@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-11-27",
+  "id": "Anthropic.claude-code",
+  "version": "2.1.332",
+  "targetPlatform": "linux-x64",
+  "publisherVerified": true,
+  "sha256": "6ce5403fb2d4e38f0a2d0ce683e1585f701dd84d8dd050de56311d9bec5ada61",
+  "downloadUrl": "https://open-vsx.org/api/Anthropic/claude-code/linux-x64/2.1.332/file/Anthropic.claude-code-2.1.332@linux-x64.vsix",
+  "manifestUrl": "https://open-vsx.org/api/Anthropic/claude-code/linux-x64/2.1.332/file/package.json",
+  "licenseUrl": "https://code.claude.com/docs/en/legal-and-compliance",
+  "registryUrl": "https://open-vsx.org/api/Anthropic/claude-code/linux-x64/2.1.332",
+  "engine": "^1.94.0",
+  "nodeEntry": "./extension.js",
+  "browserEntry": null,
+  "proposedApis": []
+}

@@ -1,0 +1,23 @@
+{
+  "name": "local-workspace",
+  "publisher": "vstab",
+  "displayName": "vstab Local Workspace",
+  "description": "Android app-private files in the real Code OSS workbench.",
+  "version": "0.2.0",
+  "license": "MIT",
+  "engines": { "vscode": "^1.96.0" },
+  "browser": "./extension.js",
+  "extensionKind": ["ui"],
+  "enabledApiProposals": ["ipc", "fileSearchProvider", "textSearchProvider"],
+  "activationEvents": ["onFileSystem:vstab-local", "onStartupFinished"],
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": { "supported": true }
+  },
+  "contributes": {
+    "commands": [
+      { "command": "vstab.local.importFile", "title": "Import File from Android", "category": "vstab" },
+      { "command": "vstab.local.exportFile", "title": "Export File to Android", "category": "vstab" }
+    ]
+  }
+}
