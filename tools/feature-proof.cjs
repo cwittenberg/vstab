@@ -29,8 +29,9 @@ async function openFile(c, filename) {
   await c.key('p', 'KeyP', 80, 2);
   await c.waitFor('!!document.querySelector(".quick-input-widget input") && document.querySelector(".quick-input-widget").offsetHeight > 0');
   await c.text(filename);
-  await c.waitFor('document.querySelectorAll(".quick-input-widget .quick-input-list .monaco-list-row").length > 0');
-  await c.key('Enter', 'Enter', 13);
+  const basename = filename.split('/').pop();
+  await c.waitFor(`[...document.querySelectorAll('.quick-input-widget .label-name')].some(e => e.textContent.trim() === ${JSON.stringify(basename)})`);
+  await c.clickText(basename, '.quick-input-widget .label-name');
   const selector = '.monaco-editor[data-uri*=' + JSON.stringify(filename.split('/').pop()) + '] .view-lines';
   await c.waitFor(`!!document.querySelector(${JSON.stringify(selector)})`);
 }
