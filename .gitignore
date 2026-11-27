@@ -2,6 +2,7 @@
 /.local/
 /artifacts/
 /dist/
+/screenshots/.capture-details.json
 
 # Dependencies and tool caches.
 node_modules/
