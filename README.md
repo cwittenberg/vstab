@@ -30,4 +30,4 @@ VS Code for tablets.
 | SSH jump hosts and keyboard-interactive/MFA | Not supported |
 | Local processes after force-stop or reboot | Not preserved |
 
-[Get started](android/README.md) · [Build](docs/BUILD.md)
+[Get started](android/README.md)

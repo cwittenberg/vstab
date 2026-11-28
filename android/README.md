@@ -2,9 +2,7 @@
 
 Android 10+.
 
-## Build and install
-
-[Build instructions](../docs/BUILD.md)
+## Install
 
 ```sh
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
@@ -32,5 +30,3 @@ Disconnect to return to local work. Android force-stop or reboot ends local proc
 3. Enter `3000`, then choose **Open in Browser** on that row.
 
 The page opens in your Android browser through a local SSH tunnel. The **Forwarded Address** shows the actual Android address; if the preferred port is busy, VStab uses a free port. Use **Stop Forwarding** to close it. Forwarded ports remain available while you use the browser and close when SSH disconnects or the workspace window closes.
-
-[SSH settings](../docs/SSH_CONFIG.md) · [Files](../docs/ANDROID_FILE_TRANSFERS.md) · [Windows and terminals](../docs/WORKSPACE_FEATURES.md)

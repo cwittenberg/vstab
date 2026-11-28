@@ -28,5 +28,3 @@ Package versions: [runtime lock](../release/android-runtime.lock.json). Refresh 
 
 Android adaptations derive from [VSCodroid](https://github.com/rmyndharis/VSCodroid/tree/843708384856a8686355ddb75a63e43cce62b2a0); retain its [MIT license](vendor/VSCodroid-LICENSE.txt).
 Keep bundled component notices in `share/vstab/notices` and `share/licenses`; provide corresponding sources where their licenses require them.
-
-[Full build](../docs/BUILD.md)

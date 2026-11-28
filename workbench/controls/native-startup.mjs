@@ -170,9 +170,11 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     local: location.hostname === 'localhost', workbenchAuthority: location.host});
   const configuration = JSON.parse(document.getElementById('vscode-workbench-web-configuration')?.getAttribute('data-settings') || '{}');
   const callbackUrl = configuration.vstabAuthCallbackUrl;
+  const callbackAddress = new URL(callbackUrl);
   let callbacks;
   Object.assign(integration.options, {tunnelProvider: forwarding.tunnelProvider,
-    resolveExternalUri: uri => uri.authority === new URL(callbackUrl).host ? Promise.resolve(uri) : forwarding.resolveExternalUri(uri),
+    resolveExternalUri: uri => uri.scheme === 'http' && uri.authority === callbackAddress.host && uri.path === callbackAddress.pathname
+      ? Promise.resolve(uri) : forwarding.resolveExternalUri(uri),
     urlCallbackProvider: uri => callbacks = createAuthCallbackProvider({callbackUrl, uri})});
   integration.onEvent(message => { if (message.event === 'stateChanged') forwarding.updateState(message.state); });
   transfers = installFileTransfers({hostWindow: window, request: (method, params) => integration.request(method, params),

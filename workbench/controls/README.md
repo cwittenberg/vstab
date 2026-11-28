@@ -8,5 +8,3 @@ Edit `src/extension.cjs`, `src/native-client.js` and `extension/documents-ui.js`
 node workbench/controls/build.mjs
 node --test workbench/controls/*.test.*
 ```
-
-[SSH settings](../../docs/SSH_CONFIG.md) · [File transfers](../../docs/ANDROID_FILE_TRANSFERS.md) · [Control API](../../docs/SSH_CONTROL_PROTOCOL.md)

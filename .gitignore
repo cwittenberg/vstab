@@ -4,6 +4,9 @@
 /dist/
 /screenshots/.capture-details.json
 
+# Local documentation.
+/docs/
+
 # Dependencies and tool caches.
 node_modules/
 __pycache__/
