@@ -1,13 +1,14 @@
-# Remote server bootstrap
+# SSH server setup
 
-`bootstrap.sh` is the template for the self-contained asset the Android app sends to an authenticated SSH exec channel running `sh -s --`. `scripts/package-server-assets.py` embeds the first-party terminal and compatibility extensions during the build. The script accepts no shell-interpolated user parameters. It installs the pinned code-server archive into the remote user's private data directory, verifies its SHA-256 from the app's trusted release pin, starts it on remote loopback with password authentication and returns exactly one protocol JSON line on stdout.
+Targets: Linux x86_64/ARM64 with glibc, `curl`, `tar` and `sha256sum`.
+The app installs the pinned server under the SSH user's account; no sudo required.
+Preload a verified archive in `~/.cache/vstab/` to avoid downloading it again.
 
-Success fields are `protocol`, `status`, `port`, `password`, `workspace`, `home`, `serverVersion` and `codeVersion`. **The response contains the server password and must never be logged.** Progress goes to stderr. Error responses contain `status: error` and a stable `code`.
+```sh
+python3 scripts/package-server-assets.py
+```
 
-If a developer captures the response to a local file for backend diagnostics, set `umask 077` before shell redirection and keep the file inside ignored private state. The install script's remote umask cannot control permissions on a file created by the caller's local shell.
+The app sends the generated bootstrap through SSH. It returns one JSON line with `protocol`, `status`, `port`, `password`, `workspace`, `home`, `serverVersion` and `codeVersion`.
+**Never log the response: it contains a password.** Progress goes to stderr.
 
-The native Android client forwards the returned remote port through SSH, posts the password to `/login` and installs the returned HttpOnly cookie into its WebView cookie store. The bundled workbench opens an empty remote window; its standard Open Folder action selects a workspace through the remote agent. Recent-folder requests use an encoded folder URL parameter, not a shell command. Resolve a user's `~/` prefix against `home` without shell interpolation.
-
-Supported first targets are Linux x86_64 and ARM64 with a compatible glibc runtime, `curl`, `tar`, `sha256sum` and standard POSIX utilities. A verified archive preloaded in `~/.cache/vstab/` avoids downloading it again. Release metadata lives in `release/server-lock.json`.
-
-Run `demo/start.sh` to create the isolated Linux SSH fixture. It uses a dedicated generated password and key, binds host port 22227 to loopback and puts private connection details in `.local/demo/connection.json`. It does not use the operator's SSH or Codex credentials.
+[Server lock](../release/server-lock.json) · [Local SSH fixture](../demo/README.md)

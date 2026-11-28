@@ -1,16 +1,11 @@
-# Source pins and generated reports
+# Dependency pins
 
-The source repository retains these build inputs:
+| Input | Pins |
+| --- | --- |
+| [server-lock.json](server-lock.json) | SSH server download and checksum |
+| [android-runtime.lock.json](android-runtime.lock.json) | Android package versions and checksums |
+| [bundle-spec.json](../workbench/bundle-spec.json) | Workbench version and download |
+| [pins.json](../native-runtime/server-patches/pins.json) | Android patch inputs |
 
-- `server-lock.json`: matched remote server artifact URLs and hashes.
-- `android-runtime.lock.json`: verified Termux package versions and hashes.
-
-Other pins live in `workbench/bundle-spec.json`,
-`native-runtime/server-patches/pins.json` and the native-addon builder's source.
-Update them deliberately when changing dependencies.
-
-The runtime and workbench packaging tools also write build inventories, patch
-manifests and qualification reports here. Those generated files are ignored by
-Git, including `android-addons.lock.json` (an output inventory despite its name).
-They describe a particular local build and are not source dependencies. APKs,
-recordings and test captures belong under ignored `dist/` or `artifacts/`.
+Build inventories and reports are generated here and ignored by Git.
+APKs go in `dist/`; captures and test reports go in `artifacts/`.

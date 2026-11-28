@@ -1,6 +1,6 @@
 # Screenshots
 
-Android emulator captures. 1920 × 1080, RGB PNG. Original pixels; no marketing overlays.
+Android emulator screenshots.
 
 | Screenshot | View |
 | --- | --- |
