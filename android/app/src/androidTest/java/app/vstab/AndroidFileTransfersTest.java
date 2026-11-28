@@ -133,6 +133,7 @@ public final class AndroidFileTransfersTest {
         onMain(() -> transfers.onActivityResult(AndroidFileTransfers.PICK_DOWNLOAD, Activity.RESULT_OK, new Intent().setData(fileUri)));
         assertTrue(done.await(20, TimeUnit.SECONDS)); assertNull(failure.get(), failure.get());
         assertTrue(result.get().getBoolean("saved")); assertEquals(bytes.length, result.get().getLong("size"));
+        assertEquals("app.js", result.get().getString("name"));
         assertArrayEquals(bytes, providerBytes());
         try { call("files.downloadWrite", new JSONObject().put("token", token).put("offset", bytes.length).put("dataBase64", "")); fail("Completed token remained writable"); }
         catch (IllegalStateException expected) { assertTrue(expected.getMessage().contains("NoPermissions")); }
@@ -226,6 +227,33 @@ public final class AndroidFileTransfersTest {
         try { call("files.downloadWrite", new JSONObject().put("token", token).put("offset", 3).put("dataBase64", "")); fail("Aborted token remained writable"); }
         catch (IllegalStateException expected) { assertTrue(expected.getMessage().contains("NoPermissions")); }
     }
+
+    @Test public void savePickerMimePreservesFilenameWhenHttpAndBlobTypesAreMisleading() throws Exception {
+        String[][] cases = {
+                {"binary sample.bin", "text/plain", "application/octet-stream"},
+                {"photo.PNG", "application/octet-stream", "image/png"},
+                {"unknown.vstab-unmapped", "text/plain", "application/octet-stream"},
+                {"Makefile", "text/plain", "application/octet-stream"}
+        };
+        for (String[] item : cases) {
+            pickerIntent.set(null);
+            String token = call("files.downloadBegin", new JSONObject().put("name", item[0])
+                    .put("type", item[1]).put("size", 0)).getString("token");
+            CountDownLatch done = new CountDownLatch(1); AtomicReference<JSONObject> result = new AtomicReference<>();
+            onMain(() -> transfers.request(owner, "files.downloadFinish", uncheckedJson("token", token),
+                    value -> { result.set(value); done.countDown(); }, error -> done.countDown()));
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            while (pickerIntent.get() == null && System.nanoTime() < deadline) Thread.sleep(20);
+            Intent intent = pickerIntent.get();
+            assertNotNull("Save picker did not open for " + item[0], intent);
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, intent.getAction());
+            assertEquals("MIME must follow the offered filename", item[2], intent.getType());
+            assertEquals("The filename hint must remain unchanged", item[0], intent.getStringExtra(Intent.EXTRA_TITLE));
+            onMain(() -> transfers.onActivityResult(AndroidFileTransfers.PICK_DOWNLOAD, Activity.RESULT_CANCELED, null));
+            assertTrue(done.await(10, TimeUnit.SECONDS)); assertNotNull(result.get()); assertTrue(result.get().getBoolean("cancelled"));
+        }
+    }
+
     private static JSONObject uncheckedJson(String key, Object value) {
         try { return json(key, value); } catch (Exception impossible) { throw new AssertionError(impossible); }
     }

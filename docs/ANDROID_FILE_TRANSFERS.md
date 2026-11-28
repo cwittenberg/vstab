@@ -13,7 +13,12 @@ Available in local and SSH workspaces.
 ## Limits
 
 - Download and clipboard paste: 256 MiB per file.
-- Clipboard paste: up to 100 files and 1 GiB total.
+- Clipboard paste: up to 100 files and 256 MiB total.
 - Upload/download/paste transfer files, not folders.
 - Read-only files and revoked permissions prevent save-back.
 - In an SSH workspace, uploaded and pasted files go to the remote host.
+
+Local terminals can use uploaded files and a shared folder's working directory.
+SSH terminals can use the transferred remote copies.
+
+[Verified APK and test evidence](../artifacts/transfers/REPORT.md)

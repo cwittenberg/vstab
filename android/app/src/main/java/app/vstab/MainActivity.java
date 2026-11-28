@@ -790,6 +790,15 @@ public class MainActivity extends Activity implements ConnectionController.Obser
         try {
             if (method.startsWith("files.")) { fileTransfers.request(source, method, params, success, failure); return; }
             if (method.equals("documents.getState")) { success.accept(documentState()); return; }
+            if (method.startsWith("tunnels.")) {
+                ConnectionController.Ready current = connection.current();
+                if (source != web || formOpen || !source.isShown() || active == null || active.localRuntime
+                        || current == null || !active.origin.equals(current.origin)
+                        || !NativeSshBridge.matchesOrigin(source.getUrl(), current.origin)) {
+                    failure.accept(new NativeSshBridge.Failure("NoPermissions", "Use the active SSH workbench to forward ports.")); return;
+                }
+                connection.tunnelRequest(method, params, success, failure); return;
+            }
             if (source == web && !formOpen && source.isShown()) {
                 if (method.equals("window.new")) {
                     success.accept(new JSONObject().put("accepted", true)); source.postDelayed(this::showNewWindow, 100); return;

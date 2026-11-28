@@ -15,6 +15,7 @@ import android.util.Base64;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
+import android.webkit.MimeTypeMap;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -159,7 +161,8 @@ final class AndroidFileTransfers implements AutoCloseable {
             try {
                 if (picker.transfer.cancelled || closed) { deliver(picker.success, json("cancelled", true)); return; }
                 saveToDocument(picker.transfer.stage, destination);
-                deliver(picker.success, new JSONObject().put("saved", true).put("name", picker.transfer.name).put("size", picker.transfer.offset));
+                deliver(picker.success, new JSONObject().put("saved", true)
+                        .put("name", destinationName(destination, picker.transfer.name)).put("size", picker.transfer.offset));
             } catch (Exception error) { fail(picker.failure, "Unavailable", safeMessage(error)); }
             finally { remove(picker.transfer); }
         });
@@ -258,7 +261,7 @@ final class AndroidFileTransfers implements AutoCloseable {
 
     private void begin(WebView owner, JSONObject params, Consumer<JSONObject> success) throws Exception {
         if (transfers.size() >= MAX_FILES + 4) throw new IOException("Too many file transfers are active. Finish the current action first.");
-        String name = checkedName(params.getString("name")), type = checkedType(params.optString("type", "application/octet-stream"));
+        String name = checkedName(params.getString("name")), type = downloadType(name);
         long size = params.optLong("size", -1);
         if (size < -1 || size > MAX_FILE_BYTES) throw new IOException("Android file transfers support files up to 256 MiB.");
         File stage = File.createTempFile("vstab-download-", ".part", context.getCacheDir());
@@ -356,6 +359,24 @@ final class AndroidFileTransfers implements AutoCloseable {
         return name;
     }
     private static String checkedType(String type) { return type != null && type.matches("[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+") ? type : "application/octet-stream"; }
+    private static String downloadType(String name) {
+        // The remote-resource route may label arbitrary files text/plain, and a
+        // Blob may provide no type. SAF uses MIME to append an extension, so the
+        // name shown to the user must take precedence over either response.
+        int dot = name.lastIndexOf('.');
+        String type = dot >= 0 && dot < name.length() - 1
+                ? MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substring(dot + 1).toLowerCase(Locale.ROOT)) : null;
+        // Android's generic MIME keeps unknown extensions and extensionless
+        // names intact instead of inventing an extension from the HTTP header.
+        return checkedType(type);
+    }
+    private String destinationName(Uri destination, String fallback) {
+        try (Cursor cursor = context.getContentResolver().query(destination,
+                new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) return checkedName(cursor.getString(0));
+        } catch (Exception ignored) { /* Saving succeeded even if display metadata is unavailable. */ }
+        return fallback;
+    }
     private Transfer lookup(WebView owner, JSONObject params) throws Exception {
         Transfer transfer = transfers.get(params.getString("token"));
         if (transfer == null) throw new SecurityException("This Android file-transfer token expired. Retry the action.");

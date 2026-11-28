@@ -1,4 +1,5 @@
 import {installFileTransfers} from './file-transfers.mjs';
+import {createPortForwarding} from './port-forwarding.mjs';
 
 const EXTENSION_ID = 'vstab.android-controls';
 const MAX_BYTES = 512 * 1024;
@@ -12,6 +13,7 @@ const METHODS = new Set([
 ]);
 const TRANSFER_METHODS = new Set(['files.clipboard', 'files.read', 'files.release',
   'files.downloadBegin', 'files.downloadWrite', 'files.downloadFinish', 'files.abort']);
+const TUNNEL_METHODS = new Set(['tunnels.forward', 'tunnels.close', 'tunnels.list']);
 const FIRST_MAIN_ID = 2 ** 52;
 const encodedSize = value => new TextEncoder().encode(value).byteLength;
 
@@ -30,6 +32,7 @@ export function createNativeControlIntegration({
   }
   const channel = channelFactory();
   const pending = new Map();
+  const listeners = new Set();
   let nativePort;
   let disposed = false;
   let mainSequence = FIRST_MAIN_ID;
@@ -47,7 +50,10 @@ export function createNativeControlIntegration({
     try { message = JSON.parse(event.data); } catch { return; }
     if (!message || message.v !== 1) return;
     if (message.event === 'stateChanged' || message.event === 'configChanged' || message.event === 'sshPrompt') {
-      if (!Object.hasOwn(message, 'id')) reply(message);
+      if (!Object.hasOwn(message, 'id')) {
+        reply(message);
+        for (const listener of listeners) listener(message);
+      }
       return;
     }
     const item = pending.get(message.id);
@@ -125,7 +131,7 @@ export function createNativeControlIntegration({
     options: {messagePorts: new Map([[EXTENSION_ID, channel.port1]])},
     request(method, params = {}) {
       if (disposed) return Promise.reject(new Error('The workbench was closed.'));
-      if (!TRANSFER_METHODS.has(method)) return Promise.reject(new Error('Unsupported Android file request.'));
+      if (!TRANSFER_METHODS.has(method) && !TUNNEL_METHODS.has(method)) return Promise.reject(new Error('Unsupported Android native request.'));
       if (pending.size >= MAX_PENDING) return Promise.reject(new Error('Too many Android file requests.'));
       const id = ++mainSequence;
       const body = JSON.stringify({v: 1, id, method, params});
@@ -144,10 +150,12 @@ export function createNativeControlIntegration({
     notify({kind, message}) {
       reply({v: 1, event: 'filesNotice', kind, message});
     },
+    onEvent(listener) { listeners.add(listener); return {dispose: () => listeners.delete(listener)}; },
     dispose() {
       if (disposed) return;
       for (const id of [...pending.keys()]) fail(id, 'Unavailable', 'The SSH control workbench was closed.');
       disposed = true;
+      listeners.clear();
       hostWindow.removeEventListener('message', handshake);
       nativePort?.close(); channel.port1.close(); channel.port2.close();
     }
@@ -157,6 +165,10 @@ export function createNativeControlIntegration({
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   let transfers;
   const integration = createNativeControlIntegration({pasteFromAndroid: () => transfers.pasteFromAndroid({force: true})});
+  const forwarding = createPortForwarding({request: (method, params) => integration.request(method, params),
+    local: location.hostname === 'localhost', workbenchAuthority: location.host});
+  Object.assign(integration.options, {tunnelProvider: forwarding.tunnelProvider, resolveExternalUri: forwarding.resolveExternalUri});
+  integration.onEvent(message => { if (message.event === 'stateChanged') forwarding.updateState(message.state); });
   transfers = installFileTransfers({hostWindow: window, request: (method, params) => integration.request(method, params),
     notify: notice => integration.notify(notice)});
   globalThis.__vstabControlOptions = integration.options;

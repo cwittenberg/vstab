@@ -18,11 +18,12 @@ const mode = process.env.VSTAB_TRANSFER_MODE || 'local';
 const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const fixtureBytes = name => {
   if (name === 'android-empty.dat') return Buffer.alloc(0);
+  if(name==='android-image.png')return Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9cAAAAASUVORK5CYII=','base64');
   const data = Buffer.alloc(name === 'android-large.bin' ? 33 * 1024 * 1024 + 37 : name === 'android-upload.bin' ? 262181 : 131101);
   for (let i = 0; i < data.length; i++) data[i] = (i * 31 + Math.floor(i / 257) + name.length) & 255;
   return data;
 };
-const fixtureNames = ['android-upload.bin', 'android-paste.bin', 'android-menu-paste.bin', 'android-empty.dat'];
+const fixtureNames = ['android-upload.bin', 'android-paste.bin', 'android-menu-paste.bin', 'android-empty.dat','android-image.png'];
 function adb(...args) {
   const binary=process.env.ANDROID_HOME?path.join(process.env.ANDROID_HOME,'platform-tools/adb'):'adb';
   return execFileSync(binary,['-s',process.env.VSTAB_ANDROID_SERIAL,...args],{maxBuffer:96*1024*1024,timeout:45000});
@@ -72,6 +73,18 @@ async function until(callback, timeout = 30000) {
   while (Date.now() < end) { const result = await callback(); if (result) return result; await f.delay(250); }
   throw new Error('Timed out waiting for Android transfer state');
 }
+async function cancelAndroidPicker() {
+  // Android Files' Back first moves through the browsed directory hierarchy.
+  // Continue until the picker actually returns its cancellation to the app.
+  for(let step=0;step<10;step++) {
+    const activity=adb('shell','dumpsys','activity','activities').toString();
+    if(/topResumedActivity=.*app\.vstab\//.test(activity))return;
+    assert.match(activity,/topResumedActivity=.*documentsui/,'Only the Android picker may receive cancellation Back');
+    adb('shell','input','keyevent','KEYCODE_BACK');
+    await f.delay(700);
+  }
+  throw Error('Android picker did not return cancellation to the app');
+}
 async function androidSourceFolder() {
   let nodes = uiNodes();
   if (nodes.some(n => n.text === 'Files in vstab-transfers-proof')) return;
@@ -86,7 +99,9 @@ async function androidSourceFolder() {
 }
 async function attach() {
   const desired = await until(async () => {
-    const list = await (await fetch('http://127.0.0.1:' + process.env.VSTAB_CDP_PORT + '/json/list')).json();
+    let list;
+    try { list=await (await fetch('http://127.0.0.1:' + process.env.VSTAB_CDP_PORT + '/json/list')).json(); }
+    catch { return false; } // Cold-start WebView debugging endpoint is not ready yet.
     return list.find(t => {
       try { const d = JSON.parse(t.description || '{}'); return t.type === 'page' && d.visible && d.attached && (new URL(t.url).hostname === 'localhost') === (mode === 'local'); }
       catch { return false; }
@@ -129,6 +144,30 @@ function workspaceBytes(folder, name) {
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, '.local/demo/connection.json'), 'utf8'));
   return execFileSync('docker', ['exec', '--user', config.username, config.container, 'cat', folder + '/' + name],{maxBuffer:96*1024*1024});
 }
+function workspaceExists(folder,name) {
+  try {
+    // exec-out deliberately has no shell status protocol: a missing cat can
+    // return its error text with exit0. Use shell's exit status for existence.
+    if(mode==='local')adb('shell','run-as','app.vstab','test','-e',folder+'/'+name);
+    else {
+      const config=JSON.parse(fs.readFileSync(path.join(ROOT,'.local/demo/connection.json'),'utf8'));
+      execFileSync('docker',['exec','--user',config.username,config.container,'test','-e',folder+'/'+name]);
+    }
+    return true;
+  } catch {return false;}
+}
+function removeOwnedDestination(folder,name) {
+  assert.ok(fixtureNames.includes(name),'Only a controlled transfer fixture may be cleared');
+  if(mode==='local')adb('shell','run-as','app.vstab','rm','-f',folder+'/'+name);
+  else {
+    const config=JSON.parse(fs.readFileSync(path.join(ROOT,'.local/demo/connection.json'),'utf8'));
+    execFileSync('docker',['exec','--user',config.username,config.container,'python3','-c',
+      'from pathlib import Path;Path('+JSON.stringify(folder+'/'+name)+').unlink(missing_ok=True)']);
+  }
+  const present=workspaceExists(folder,name);
+  assert.equal(present,false,'The transfer destination must be absent before the ordinary UI action');
+  return true;
+}
 async function checkWorkspace(folder, name) {
   const expected = fixtureBytes(name);
   const bytes = await until(() => {
@@ -137,32 +176,35 @@ async function checkWorkspace(folder, name) {
   assert.equal(digest(bytes), digest(expected));
   return {name, bytes: bytes.length, sha256: digest(bytes), independentRead: mode === 'local' ? 'adb run-as app.vstab cat' : 'isolated Docker SSH-host cat'};
 }
-async function upload(c, folder, cancel = false) {
+async function upload(c, folder, cancel = false,sourceName='android-upload.bin') {
+  const destinationAbsentBefore=removeOwnedDestination(folder,sourceName);
   await explorerContext(c);
   await menu(c, 'Upload...');
   await until(()=>/topResumedActivity=.*documentsui/.test(adb('shell','dumpsys','activity','activities').toString()),60000);
   await f.delay(300);
   if (cancel) {
     screenshot(mode + '-upload-cancel-picker');
-    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK');
-    await until(()=>/topResumedActivity=.*app\.vstab\//.test(adb('shell','dumpsys','activity','activities').toString()));
+    await cancelAndroidPicker();
     assert.equal(await c.evaluate('new URL(location.href).searchParams.get("folder")'), folder);
-    return {cancelled: true, workspacePreserved: true, appForegroundAfterCancel: true};
+    const present=workspaceExists(folder,sourceName);
+    assert.equal(present,false,'Cancelling Upload created a destination file');
+    return {cancelled: true, workspacePreserved: true, appForegroundAfterCancel: true,destinationAbsentBefore,destinationAbsentAfter:true};
   }
   await androidSourceFolder();
   screenshot(mode + '-upload-android-picker');
-  nativeText('android-upload.bin', {content: true});
-  const result = await checkWorkspace(folder, 'android-upload.bin');
+  nativeText(sourceName, {content: true});
+  const result = await checkWorkspace(folder,sourceName);
   screenshot(mode + '-upload-explorer');
-  return result;
+  return {...result,destinationAbsentBefore};
 }
 async function paste(c, folder, useMenu = false) {
+  const name=useMenu?'android-menu-paste.bin':'android-paste.bin';
+  const destinationAbsentBefore=removeOwnedDestination(folder,name);
   const taskDump = adb('shell', 'dumpsys', 'activity', 'activities').toString();
   const taskId = taskDump.match(/topResumedActivity=.*app\.vstab\/[^\s]+ t(\d+)/)?.[1];
   assert.ok(taskId, 'The app task must be known before opening Android Files');
   adb('shell', 'am', 'start', '-n', 'com.google.android.documentsui/com.android.documentsui.LauncherActivity');
   await f.delay(300); await androidSourceFolder();
-  const name = useMenu ? 'android-menu-paste.bin' : 'android-paste.bin';
   nativeText(name, {content: true, long: true});
   adb('shell', 'input', 'keycombination', 'KEYCODE_CTRL_LEFT', 'KEYCODE_C');
   await f.delay(300); screenshot(mode + '-copied-in-android-files');
@@ -180,13 +222,22 @@ async function paste(c, folder, useMenu = false) {
   });
   const result = await checkWorkspace(folder, name);
   screenshot(mode + (useMenu ? '-pasted-in-explorer-menu' : '-pasted-in-explorer'));
-  return {...result, source: 'Android Files selected actual file and Ctrl+C', paste: useMenu ? 'ordinary Explorer Paste from Android context action' : 'ordinary Explorer focus and Ctrl+V'};
+  return {...result,destinationAbsentBefore,source:'Android Files selected actual file and Ctrl+C',paste:useMenu?'ordinary Explorer Paste from Android context action':'ordinary Explorer focus and Ctrl+V'};
 }
 async function terminal(c) {
+  if(await c.evaluate('document.body.innerText.includes("Restricted Mode")')) {
+    const restricted='[aria-label="Restricted Mode: Some features are disabled because this folder is not trusted."]';
+    if(await c.evaluate(`!!document.querySelector(${JSON.stringify(restricted)})`)) {
+      await c.click(restricted);
+      await c.waitFor('[...document.querySelectorAll("a.monaco-button")].some(e=>e.textContent.trim()==="Trust")');
+      await c.clickText('Trust');
+      await c.key('Escape','Escape',27);
+    }
+  }
   await f.command(c, 'Terminal: Create New Terminal');
   await c.waitFor('!!document.querySelector(".terminal-wrapper.active .xterm-screen")');
   await f.terminal(c, 'sha256sum android-upload.bin android-paste.bin android-menu-paste.bin');
-  for (const name of fixtureNames.filter(name => name !== 'android-empty.dat')) {
+  for (const name of fixtureNames.filter(name => name.endsWith('.bin'))) {
     await c.waitFor('document.body.innerText.includes(' + JSON.stringify(digest(fixtureBytes(name)) + '  ' + name) + ')');
   }
   screenshot(mode + '-terminal-file-access');
@@ -199,21 +250,26 @@ async function download(c, folder, cancel = false, sourceName = 'android-upload.
   await f.delay(300);
   if (cancel) {
     screenshot(mode + '-download-cancel-picker');
-    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK');
-    await until(()=>/topResumedActivity=.*app\.vstab\//.test(adb('shell','dumpsys','activity','activities').toString()));
+    await cancelAndroidPicker();
     assert.equal(await c.evaluate('new URL(location.href).searchParams.get("folder")'), folder);
     return {cancelled: true, workspacePreserved: true, appForegroundAfterCancel: true};
   }
   let nodes = uiNodes();
-  const downloads = nodes.find(n => n.text === 'Downloads');
-  if (downloads) { tap(downloads); await f.delay(300); }
+  if (!nodes.some(n=>n.text==='Downloads')) {
+    const drawer=nodes.find(n=>n['content-desc']==='Show roots');
+    if(drawer){tap(drawer);await f.delay(300);nodes=uiNodes();}
+  }
+  const downloads=nodes.find(n=>n.text==='Downloads');
+  if(downloads){tap(downloads);await f.delay(300);}
   nodes = uiNodes();
   const field = nodes.find(n => n.class === 'android.widget.EditText' && (n['resource-id'] === 'android:id/title' || n.text.endsWith('.bin')));
   assert.ok(field, 'Android save picker must show an editable filename');
   tap(field);
   adb('shell', 'input', 'keycombination', 'KEYCODE_CTRL_LEFT', 'KEYCODE_A');
-  const name = 'vstab-' + mode + (sourceName === 'android-large.bin' ? '-large-download.bin' : '-download.bin');
+  const name='vstab-'+mode+(sourceName==='android-large.bin'?'-large-download.bin':sourceName==='android-image.png'?'-image-download.png':'-download.bin');
   adb('shell', 'rm', '-f', '/sdcard/Download/' + name);
+  let existed=true;try{adb('shell','test','-e','/sdcard/Download/'+name);}catch{existed=false;}
+  assert.equal(existed,false,'The controlled Android download destination must be absent before Save');
   adb('shell', 'input', 'text', name);
   screenshot(mode + '-download-android-save-picker');
   const save = uiNodes().find(n => /^save$/i.test(n.text) && n.enabled === 'true');
@@ -222,7 +278,7 @@ async function download(c, folder, cancel = false, sourceName = 'android-upload.
   const destination = '/sdcard/Download/' + name;
   const bytes = await until(() => { try {const value=adb('exec-out','cat',destination);return value.equals(original)?value:false;} catch {return false;} },120000);
   screenshot(mode + '-download-completed');
-  return {source: folder + '/' + sourceName, destination, bytes: bytes.length, sha256: digest(bytes), independentRead: 'adb shared-storage cat'};
+  return {source:folder+'/'+sourceName,destination,bytes:bytes.length,sha256:digest(bytes),independentRead:'adb shared-storage cat',destinationAbsentBeforeSave:true,exactBasenamePreserved:true};
 }
 async function downloadLarge(c, folder) {
   const name = 'android-large.bin';
@@ -273,6 +329,7 @@ async function run() {
       else if (flow === 'download') record.checks.download=await download(c,record.workspace);
       else if (flow === 'download-large') record.checks.downloadLarge=await downloadLarge(c,record.workspace);
       else if (flow === 'terminal') record.checks.terminal=await terminal(c);
+      else if(flow==='image') { record.checks.imageUpload=await upload(c,record.workspace,false,'android-image.png');record.checks.imageDownload=await download(c,record.workspace,false,'android-image.png'); }
       else throw Error('Unknown proof flow: '+flow);
       console.log('PASS '+mode+' '+flow);
       fs.writeFileSync(path.join(OUT,mode+'-proof.json'),JSON.stringify(record,null,2)+'\n');

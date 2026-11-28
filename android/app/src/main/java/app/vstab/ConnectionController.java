@@ -16,6 +16,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UserInfo;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
@@ -87,8 +88,10 @@ final class ConnectionController {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final AtomicInteger generation = new AtomicInteger();
+    private final Object connectionLock = new Object();
     private volatile Observer observer;
     private volatile Session session;
+    private volatile SshPortForwards portForwards;
     private volatile ChannelExec bootstrap;
     private volatile boolean busy;
     private volatile Ready ready;
@@ -144,7 +147,10 @@ final class ConnectionController {
                 if (profile.key == null) opened.setPassword(profile.password);
                 opened.setServerAliveInterval(15000);
                 opened.setServerAliveCountMax(3);
-                session = opened;
+                synchronized (connectionLock) {
+                    checkCurrent(operation);
+                    session = opened;
+                }
                 opened.connect(60000);
                 checkCurrent(operation);
                 phase(operation, "preparing", "SSH authenticated. Preparing remote workspace…");
@@ -165,15 +171,34 @@ final class ConnectionController {
                 Ready completed = new Ready(origin, folder.isEmpty() ? origin + "/" : origin + "/?folder=" + encode(folder), profile,
                         result.optString("codeVersion", result.optString("serverVersion")),
                         result.getString("serverVersion"), remoteHome, folder, remotePort, cookies);
-                ready = completed;
-                busy = false;
+                final Session connected = opened;
+                SshPortForwards forwards = new SshPortForwards(SshPortForwards.localHostFor(loopbackHost), new SshPortForwards.Transport() {
+                    @Override public boolean isConnected() { return connected.isConnected(); }
+                    @Override public int open(String localHost, int localPort, String remoteHost, int remotePort) throws Exception {
+                        return connected.setPortForwardingL(localHost, localPort, remoteHost, remotePort);
+                    }
+                    @Override public void close(String localHost, int localPort) throws Exception {
+                        connected.delPortForwardingL(localHost, localPort);
+                    }
+                });
+                synchronized (connectionLock) {
+                    checkCurrent(operation);
+                    portForwards = forwards;
+                    ready = completed;
+                    busy = false;
+                }
                 phase(operation, "connected", "Connected over SSH · Code " + completed.version);
                 main.post(() -> { if (operation == generation.get() && observer != null) observer.onReady(completed); });
                 monitor(opened, operation);
             } catch (Exception error) {
                 if (opened != null) opened.disconnect();
-                if (operation != generation.get()) return;
-                busy = false; ready = null;
+                synchronized (connectionLock) {
+                    if (operation != generation.get()) return;
+                    SshPortForwards forwards = portForwards;
+                    portForwards = null;
+                    if (forwards != null) forwards.invalidate();
+                    busy = false; ready = null;
+                }
                 String reason = friendlyError(error);
                 phase(operation, "error", reason);
                 main.post(() -> { if (operation == generation.get() && observer != null) observer.onFailure(reason); });
@@ -185,8 +210,14 @@ final class ConnectionController {
         Thread watcher = new Thread(() -> {
             try {
                 while (operation == generation.get() && opened.isConnected()) Thread.sleep(1000);
-                if (operation != generation.get()) return;
-                ready = null; busy = false;
+                synchronized (connectionLock) {
+                    if (operation != generation.get()) return;
+                    SshPortForwards forwards = portForwards;
+                    portForwards = null;
+                    if (forwards != null) forwards.invalidate();
+                    ready = null; busy = false;
+                }
+                opened.disconnect();
                 String reason = "The SSH connection was interrupted. Reconnect to resume this workspace.";
                 phase(operation, "error", reason);
                 main.post(() -> { if (operation == generation.get() && observer != null) observer.onFailure(reason); });
@@ -196,17 +227,77 @@ final class ConnectionController {
     }
 
     void disconnect() {
-        generation.incrementAndGet();
-        busy = false; ready = null;
-        CountDownLatch pending = hostDecision;
-        hostDecision = null;
+        CountDownLatch pending;
+        ChannelExec running;
+        Session opened;
+        synchronized (connectionLock) {
+            generation.incrementAndGet();
+            busy = false; ready = null;
+            SshPortForwards forwards = portForwards;
+            portForwards = null;
+            if (forwards != null) forwards.invalidate();
+            pending = hostDecision;
+            hostDecision = null;
+            running = bootstrap;
+            bootstrap = null;
+            opened = session;
+            session = null;
+        }
         if (pending != null) pending.countDown();
-        ChannelExec running = bootstrap;
-        bootstrap = null;
         if (running != null) running.disconnect();
-        Session opened = session;
-        session = null;
         if (opened != null) opened.disconnect();
+    }
+
+    void tunnelRequest(String method, JSONObject params, Consumer<JSONObject> success,
+                       Consumer<NativeSshBridge.Failure> failure) {
+        final SshPortForwards owner = portForwards;
+        worker.execute(() -> {
+            try {
+                if (owner == null || owner != portForwards || ready == null)
+                    throw new IllegalStateException("Connect to an SSH workspace before forwarding a port.");
+                JSONObject result;
+                switch (method) {
+                    case "tunnels.forward": {
+                        String host = params.has("remoteHost") ? params.getString("remoteHost") : "127.0.0.1";
+                        int remotePort = tunnelPort(params, "remotePort");
+                        Integer localPort = params.has("localPort") ? tunnelPort(params, "localPort") : null;
+                        result = tunnelJson(owner.forward(host, remotePort, localPort));
+                        break;
+                    }
+                    case "tunnels.close":
+                        result = new JSONObject().put("closed", owner.close(params.getString("id"), params.getString("connectionId")));
+                        break;
+                    case "tunnels.list": {
+                        JSONArray tunnels = new JSONArray();
+                        for (SshPortForwards.Forward forward : owner.list()) tunnels.put(tunnelJson(forward));
+                        result = new JSONObject().put("connectionId", owner.connectionId).put("tunnels", tunnels);
+                        break;
+                    }
+                    default: throw new IllegalArgumentException("This port-forwarding action is unavailable.");
+                }
+                if (owner != portForwards) throw new IllegalStateException("The SSH connection changed. Retry the port action.");
+                success.accept(result);
+            } catch (Exception error) {
+                String code = error instanceof SecurityException ? "NoPermissions" :
+                        error instanceof IllegalArgumentException ? "InvalidConfiguration" : "Unavailable";
+                failure.accept(new NativeSshBridge.Failure(code, error.getMessage() == null ? "The SSH port action failed." : error.getMessage()));
+            }
+        });
+    }
+
+    private static int tunnelPort(JSONObject params, String key) throws Exception {
+        Object value = params.get(key);
+        if (!(value instanceof Number) || !Double.isFinite(((Number) value).doubleValue())
+                || ((Number) value).doubleValue() != Math.rint(((Number) value).doubleValue())
+                || ((Number) value).doubleValue() < 0 || ((Number) value).doubleValue() > 65535)
+            throw new IllegalArgumentException("The port must be a whole number between 0 and 65535.");
+        return ((Number) value).intValue();
+    }
+
+    private static JSONObject tunnelJson(SshPortForwards.Forward forward) throws Exception {
+        return new JSONObject().put("id", forward.id).put("connectionId", forward.connectionId)
+                .put("remoteHost", forward.remoteHost).put("remotePort", forward.remotePort)
+                .put("localHost", forward.localHost).put("localPort", forward.localPort).put("localAddress", forward.localAddress);
     }
 
     synchronized Ready recordWorkspace(String path) {

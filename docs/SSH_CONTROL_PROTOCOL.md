@@ -28,6 +28,9 @@ Never log request payloads, passwords, passphrases, keys, cookies or bootstrap r
 | `workspace.local` | `{}` | Return to local workspace |
 | `window.new` | `{}` | Open workspace-window selection |
 | `app.about` | `{}` | Open About |
+| `tunnels.forward` | `{remoteHost,remotePort,localPort?}` | `{id,connectionId,remoteHost,remotePort,localHost,localPort,localAddress}` |
+| `tunnels.close` | `{id,connectionId}` | Close the session-owned listener |
+| `tunnels.list` | `{}` | `{connectionId,tunnels}` |
 | `documents.getState` | `{}` | Current shared-document state |
 | `documents.pickFolder`, `documents.pickFile` | `{}` | Open Android picker; return selected document state |
 | `documents.openApproved`, `documents.sync` | `{}` | Open or synchronize the approved document |
@@ -46,5 +49,7 @@ Prompt IDs are single-use and bound to the source workspace/connection. Changed 
 Profiles contain alias/connection details, diagnostics and recent folders. Connection phases: `disconnected`, `connecting`, `verifying-host`, `authenticating`, `preparing`, `connected`, `reconnecting`, `disconnecting`, `error`.
 Config URI: `vstab-ssh-config:/config`; native file: `HOME/.ssh/config`. Line numbers are zero-based. Diagnostics: `{line,message,severity}`.
 Errors: `Unavailable`, `NoPermissions`, `FileNotFound`, `Conflict`, `InvalidConfiguration`; transfers can also return `SessionChanged`.
+
+Tunnel requests are available only to the bundled main frame, not extension workers. The standard Ports panel uses them to create real SSH TCP forwards on Android loopback. Destinations are restricted to the remote host's loopback; up to 32 ports per SSH workspace. An occupied local port falls back to an available port, which is displayed in Ports. Listeners remain open while using an external Android browser and close on Stop Forwarding, SSH disconnect or workspace-window closure. Close requests carry the returned tunnel connection ID so stale requests cannot close a later session's listener.
 
 Handlers: [NativeSshBridge](../android/app/src/main/java/app/vstab/NativeSshBridge.java), [MainActivity](../android/app/src/main/java/app/vstab/MainActivity.java), [AndroidFileTransfers](../android/app/src/main/java/app/vstab/AndroidFileTransfers.java).

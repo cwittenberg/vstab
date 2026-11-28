@@ -139,6 +139,22 @@ test('main-frame file calls reject on native session replacement', async () => {
   } finally { h.close(); }
 });
 
+test('native port forwarding is available to the main frame and forbidden to extension workers', async () => {
+  const h = harness();
+  try {
+    const native = h.attach();
+    const received = once(native, 'message');
+    const operation = h.integration.request('tunnels.forward', {remoteHost: '127.0.0.1', remotePort: 3000});
+    const call = JSON.parse((await received)[0]);
+    const descriptor = {id: 'one', connectionId: 'session', localAddress: '127.0.0.1:3000'};
+    native.postMessage(JSON.stringify({v: 1, id: call.id, ok: true, result: descriptor}));
+    assert.deepEqual(await operation, descriptor);
+    const blocked = once(h.worker, 'message');
+    h.worker.postMessage(request(15, 'tunnels.forward', {remoteHost: '127.0.0.1', remotePort: 3000}));
+    assert.equal((await blocked)[0].error.code, 'NoPermissions');
+  } finally { h.close(); }
+});
+
 test('Explorer paste command stays in the main frame and shares no native token', async () => {
   let pastes = 0;
   const h = harness('http://localhost:35721', {pasteFromAndroid: async () => { pastes++; return {pasted: 2}; }});

@@ -35,6 +35,7 @@ final class NativeSshBridge {
             "ssh.getState", "ssh.readConfig", "ssh.writeConfig", "ssh.addHost", "ssh.removeHost",
             "ssh.connect", "ssh.disconnect", "ssh.reconnect", "ssh.recordWorkspace",
             "ssh.importKey", "ssh.respondPrompt", "workspace.local", "app.about", "window.new",
+            "tunnels.forward", "tunnels.close", "tunnels.list",
             "documents.getState", "documents.pickFolder", "documents.pickFile", "documents.openApproved", "documents.sync", "documents.resolve",
             "files.clipboard", "files.read", "files.release", "files.downloadBegin", "files.downloadWrite", "files.downloadFinish", "files.abort"));
     private final android.os.Handler main = new android.os.Handler(Looper.getMainLooper());

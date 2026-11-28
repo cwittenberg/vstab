@@ -16,6 +16,7 @@ VS Code for tablets.
 | Offline editing | Yes |
 | Terminal, Node.js, Git and npm | Included |
 | Remote SSH | Linux servers; password and SSH key login |
+| Remote port forwarding | Ports panel; open remote web apps in the Android browser |
 | Android files and shared folders | Open, edit and save back |
 | File upload, download and paste | Yes |
 | Split-screen workspaces | Up to four windows |

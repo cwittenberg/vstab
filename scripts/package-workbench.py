@@ -148,6 +148,7 @@ def main():
             shutil.copytree(controls_source, stage / 'controls/extension')
             shutil.copyfile(root / 'workbench/controls/native-startup.mjs', stage / 'controls/native-startup.mjs')
             shutil.copyfile(root / 'workbench/controls/file-transfers.mjs', stage / 'controls/file-transfers.mjs')
+            shutil.copyfile(root / 'workbench/controls/port-forwarding.mjs', stage / 'controls/port-forwarding.mjs')
         licenses = stage / 'static/notices'
         licenses.mkdir(parents=True, exist_ok=True)
         for license_path in (root / 'workbench/licenses').iterdir():

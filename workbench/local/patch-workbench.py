@@ -7,7 +7,7 @@ import re
 
 MARKER = '/*vstab-native-embedder-v1*/'
 ORIGINAL_SHA256 = '6cd0f009b42cc337cd45812f3dfa3cb1886a91e29720aa60683b8c306ef08f3e'
-PATCHED_SHA256 = '9e76156ee9375bbaa2ee5e78f3be13d35755d63a1652d9b630c7b5028d4234c2'
+PATCHED_SHA256 = 'deb0e2d64a82cab85b78e5ad702d070f80f0e2c73a24d8a7ce66b596c5f240a4'
 
 
 def patch(source: str) -> str:
@@ -34,6 +34,22 @@ def patch(source: str) -> str:
         raise ValueError('Cannot identify the pinned Explorer clipboard writer; refusing to patch')
     source = source.replace(copy_resources,
         'async writeResources(e){if(e.length)xo().dispatchEvent(new Event("vstab-explorer-copy"));try{await xo().navigator.clipboard.write(', 1)
+    # Use Android's real SSH listeners instead of code-server's synthetic
+    # localhost address and authenticated HTTP proxy. Keep upstream behavior
+    # when the native bootstrap is absent.
+    resolver = 'resolveExternalUri:n=>{let r=n,a=yvt(r);'
+    factory = 'tunnelProvider:{tunnelFactory:'
+    if source.count(resolver) != 1 or source.count(factory) != 1:
+        raise ValueError('Cannot identify the pinned Ports provider and URI resolver; refusing to patch')
+    source = source.replace(resolver,
+        'resolveExternalUri:n=>{if(globalThis.__vstabControlOptions?.resolveExternalUri)return globalThis.__vstabControlOptions.resolveExternalUri(n);let r=n,a=yvt(r);', 1)
+    source = source.replace(factory,
+        'tunnelProvider:globalThis.__vstabControlOptions?.tunnelProvider??{tunnelFactory:', 1)
+    tunnel_address = 'tunnelRemotePort:f.remoteAddress.port,tunnelRemoteHost:f.remoteAddress.host,localAddress:await this.resolveExternalUri(v)'
+    if source.count(tunnel_address) != 1:
+        raise ValueError('Cannot identify the pinned Ports local address conversion; refusing to patch')
+    source = source.replace(tunnel_address,
+        'tunnelRemotePort:f.remoteAddress.port,tunnelRemoteHost:f.remoteAddress.host,tunnelLocalPort:f.localPort,localAddress:await this.resolveExternalUri(v)', 1)
     # Derive minifier aliases from the existing startup call; never patch an
     # arbitrary create-like call elsewhere in the bundled workbench.
     pattern = re.compile(
