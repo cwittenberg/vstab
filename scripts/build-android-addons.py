@@ -76,6 +76,12 @@ def build_abi(abi, target, ndk, prepared, headers):
                      '@vscode/sqlite3':'libvscode-sqlite3.so','argon2':'libargon2.so'}[name]
         run([cxx,*common,'-I'+str(prepared['node-addon-api'+str(api)]),*extra,
              '-o',out,*[src / s for s in sources]])
+        # Retain the actual linked symbol table before stripping the runtime
+        # copy. Symbol preparation accepts it only when its allocated sections
+        # and GNU build ID match the packaged ELF exactly.
+        unstripped = OUT / 'unstripped' / abi / out.name
+        unstripped.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(out, unstripped)
         run([tools / 'llvm-strip',out])
         return out
     compile_addon('node-pty',['src/unix/pty.cc'],
@@ -114,9 +120,8 @@ def build_abi(abi, target, ndk, prepared, headers):
         meta = subprocess.check_output(['readelf','-hlW',str(binary)],text=True)
         expected_machine = 'AArch64' if abi == 'arm64-v8a' else 'Advanced Micro Devices X86-64'
         if expected_machine not in meta: raise RuntimeError('wrong machine: '+str(binary))
-        minimum_alignment = 4096 if abi == 'x86_64' and binary.name == 'libldmusl.so' else 16384
         for line in meta.splitlines():
-            if line.strip().startswith('LOAD ') and int(line.split()[-1],16)<minimum_alignment:
+            if line.strip().startswith('LOAD ') and int(line.split()[-1],16)<16384:
                 raise RuntimeError('ELF is not 16KB aligned: '+str(binary))
         if 'Requesting program interpreter:' in meta and '/system/bin/linker64' not in meta:
             raise RuntimeError('not Android-linked: '+str(binary))

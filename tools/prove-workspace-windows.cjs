@@ -9,7 +9,7 @@ const {execFileSync} = require('node:child_process');
 const f = require('./feature-proof.cjs');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'artifacts/features');
-const localFolder = '/data/user/0/app.vstab/files/workspaces/window-proof';
+const localFolder = '/data/user/0/com.vstab/files/workspaces/window-proof';
 const remoteFile = 'window-remote-proof.js';
 const localText = 'console.log("saved in the Android window");';
 const remoteText = 'console.log("saved in the SSH window");';
@@ -59,7 +59,7 @@ async function showEditor(c) {
   const candidate = process.env.VSTAB_CANDIDATE_APK;
   assert.ok(candidate, 'Select an immutable APK with VSTAB_CANDIDATE_APK.');
   const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(candidate)).digest('hex');
-  const installedPath = f.adb('shell', 'pm', 'path', 'app.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
+  const installedPath = f.adb('shell', 'pm', 'path', 'com.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
   assert.equal(f.adb('exec-out', 'sha256sum', installedPath).toString().split(/\s/)[0], apkSha256);
   const record = {capturedAt: new Date().toISOString(), apkSha256,
     environment: 'Actual Android API36 x86_64 tablet emulator; controlled Linux SSH fixture', checks: {}};
@@ -70,11 +70,11 @@ async function showEditor(c) {
     assert.match(await main.evaluate('location.hostname'), /^127\.0\.0\.[1-4]$/);
     const primary = main.target.id;
     fixture(`from pathlib import Path;Path(${JSON.stringify(remoteFile)}).write_text('console.log("before remote edit");')`);
-    f.adb('shell', 'run-as', 'app.vstab', 'mkdir', '-p', localFolder);
+    f.adb('shell', 'run-as', 'com.vstab', 'mkdir', '-p', localFolder);
     const seed = path.join(output, 'window-local-fixture.js');
     fs.writeFileSync(seed, 'console.log("before local edit");');
     f.adb('push', seed, '/data/local/tmp/vstab-window-local-fixture.js');
-    f.adb('shell', 'run-as', 'app.vstab', 'cp', '/data/local/tmp/vstab-window-local-fixture.js', localFolder + '/second.js');
+    f.adb('shell', 'run-as', 'com.vstab', 'cp', '/data/local/tmp/vstab-window-local-fixture.js', localFolder + '/second.js');
     await showEditor(main);
     await f.openFile(main, remoteFile); await f.replaceFile(main, remoteFile, remoteText);
     record.remoteBeforeSecondWindow = fixture(`from pathlib import Path;print(Path(${JSON.stringify(remoteFile)}).read_text())`).trim();
@@ -87,7 +87,7 @@ async function showEditor(c) {
     await showEditor(second);
     await f.openFile(second, 'second.js'); await f.replaceFile(second, 'second.js', localText);
     await hideKeyboard(); await f.delay(600);
-    record.localBytes = f.adb('exec-out', 'run-as', 'app.vstab', 'cat', localFolder + '/second.js').toString().trim();
+    record.localBytes = f.adb('exec-out', 'run-as', 'com.vstab', 'cat', localFolder + '/second.js').toString().trim();
     record.remoteBytes = fixture(`from pathlib import Path;print(Path(${JSON.stringify(remoteFile)}).read_text())`).trim();
     assert.equal(record.localBytes, localText); assert.equal(record.remoteBytes, remoteText);
     record.windows = (await targets()).map(t => ({id: t.id, url: t.url, bounds: JSON.parse(t.description)}));

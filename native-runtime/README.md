@@ -28,3 +28,22 @@ Package versions: [runtime lock](../release/android-runtime.lock.json). Refresh 
 
 Android adaptations derive from [VSCodroid](https://github.com/rmyndharis/VSCodroid/tree/843708384856a8686355ddb75a63e43cce62b2a0); retain its [MIT license](vendor/VSCodroid-LICENSE.txt).
 Keep bundled component notices in `share/vstab/notices` and `share/licenses`; provide corresponding sources where their licenses require them.
+
+## Native crash symbols
+
+Release builds prepare real function symbol tables using
+`scripts/prepare-android-native-symbols.py`. The resulting `<ABI>/*.so.sym`
+directory is supplied to Android Gradle Plugin's `NATIVE_SYMBOL_TABLES` artifact
+and embedded in the Play bundle. This preserves the runtime files and their
+manifest checksums.
+
+The preparation report records each payload's SHA-256, GNU build ID when present,
+defined function count and coverage. Each symbol file must have a static symbol
+table and the same allocated sections and build ID as its corresponding runtime
+ELF. Native addon and x86_64 musl builds preserve their linked files under
+`.local/android-runtime/unstripped/` before stripping the runtime copies.
+
+Pre-stripped vendor libraries cannot recover their missing function symbols.
+They are listed as unavailable and excluded from the symbol archive; the archive
+does not claim complete runtime coverage. Rebuild the matching component from its
+pinned sources or obtain its exact upstream symbol files to extend coverage.

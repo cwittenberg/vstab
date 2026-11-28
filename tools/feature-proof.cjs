@@ -83,7 +83,7 @@ async function typeKeys(c, text) {
   }
 }
 async function report(c, name, extra = {}) {
-  const result = {capturedAt: new Date().toISOString(), environment: 'Android API36 x86_64 tablet emulator, actual app.vstab APK/WebView',
+  const result = {capturedAt: new Date().toISOString(), environment: 'Android API36 x86_64 tablet emulator, actual com.vstab APK/WebView',
     title: await c.evaluate('document.title'), origin: await c.evaluate('location.origin'),
     visibleText: await c.evaluate('document.body.innerText.slice(-16000)'), ...extra};
   fs.writeFileSync(path.join(root, 'artifacts/features', name), JSON.stringify(result, null, 2) + '\n');

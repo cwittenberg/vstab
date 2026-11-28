@@ -24,7 +24,7 @@ const {typeKeys} = require('./feature-proof.cjs');
 const {ActivationLogParser, redact} = require('../workbench/compatibility/extension/diagnostics');
 
 const ROOT = path.resolve(__dirname, '..');
-const APP = 'app.vstab';
+const APP = 'com.vstab';
 const SERIAL = process.env.VSTAB_ANDROID_SERIAL || 'emulator-5580';
 const ADB = process.env.ANDROID_HOME ? path.join(process.env.ANDROID_HOME, 'platform-tools/adb') : 'adb';
 const OUTPUT = path.resolve(process.env.VSTAB_COMPATIBILITY_PROOF_DIR || path.join(ROOT, 'artifacts/features/extension-compatibility'));
@@ -193,7 +193,7 @@ async function main() {
       if (fs.existsSync(path.join(OUTPUT, name))) fs.copyFileSync(path.join(OUTPUT, name), path.join(prior, name));
     }
   }
-  const report = {schema: 1, capturedAt: new Date().toISOString(), environment: 'Actual Android emulator WebView inside app.vstab',
+  const report = {schema: 1, capturedAt: new Date().toISOString(), environment: 'Actual Android emulator WebView inside com.vstab',
     fixture: {id: fixtureId, source: path.relative(ROOT, FIXTURE),
       activation: 'The original onStartupFinished test extension deliberately throws Unsupported platform: android from activate(). No production extension is altered.'},
     proofMethod: 'Install the original controlled real extension; ordinary IDE Reload Window, warning details and report/check commands; passive UI observation; read actual extension-host logs.',

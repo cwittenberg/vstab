@@ -54,7 +54,11 @@ export function createAuthCallbackProvider({callbackUrl, uri, hostWindow = windo
         address.searchParams.set('vscode-' + key, options[key]);
       }
       pending.set(id, {created: now(), options: saved});
-      return uri.parse(address.href);
+      // VS Code URI.parse decodes percent escapes in the entire query. Keep
+      // URLSearchParams' encoding so a nested query cannot become outer fields
+      // when the opener serializes this URI with toString(true).
+      return uri.from({scheme: address.protocol.slice(0, -1), authority: address.host,
+        path: address.pathname, query: address.search.slice(1)});
     },
     dispose() {
       disposed = true;

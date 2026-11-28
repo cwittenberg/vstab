@@ -192,12 +192,12 @@ async function main() {
   const metadata = JSON.parse(execFileSync('python3', ['-c', 'import zipfile,sys; print(zipfile.ZipFile(sys.argv[1]).read("assets/server-tools.json").decode())', apkPath], {encoding:'utf8'}));
   const featureId = metadata.payloadSha256.slice(0, 20);
   const apkSha256 = require('node:crypto').createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
-  const report = {schema: 1, capturedAt: new Date().toISOString(), environment: 'Actual Android API36 tablet emulator app.vstab WebView + isolated Linux SSH host',
+  const report = {schema: 1, capturedAt: new Date().toISOString(), environment: 'Actual Android API36 tablet emulator com.vstab WebView + isolated Linux SSH host',
     proofMethod: 'Ordinary IDE host picker, masked password prompt, persistent-terminal command and Close Remote Connection; independent remote PID/file/source-hash readback.',
     runId, sessionName, featureId, apkSha256, screenshots: [], checks: {}, limits: ['Emulator proof does not establish physical ARM64/tablet qualification.', 'Remote shells depend on the SSH host remaining alive; no reboot survival is claimed.']};
   let c, failure;
   try {
-    const installedPath = f.adb('shell', 'pm', 'path', 'app.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
+    const installedPath = f.adb('shell', 'pm', 'path', 'com.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
     const installedSha = f.adb('exec-out', 'sha256sum', installedPath).toString().match(/^[a-f0-9]{64}/)?.[0];
     report.installedApkSha256 = installedSha;
     assert.equal(installedSha, apkSha256, 'The installed APK must match the candidate APK being reported.');

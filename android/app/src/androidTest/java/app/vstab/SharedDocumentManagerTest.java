@@ -26,7 +26,7 @@ public final class SharedDocumentManagerTest {
     @Before public void prepare() throws Exception {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         authority = Uri.parse("content://" + TestDocumentsProvider.AUTHORITY);
-        context.startActivity(new Intent().setClassName("app.vstab.test", "app.vstab.DocumentFixtureActivity")
+        context.startActivity(new Intent().setClassName("com.vstab.test", "app.vstab.DocumentFixtureActivity")
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         long grantDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (true) {
@@ -103,7 +103,7 @@ public final class SharedDocumentManagerTest {
             @Override public void onFailure(String message) { error.set(message); failed.countDown(); }
         });
         assertTrue(observed.await(10, TimeUnit.SECONDS));
-        context.startActivity(new Intent().setClassName("app.vstab.test", "app.vstab.DocumentFixtureActivity")
+        context.startActivity(new Intent().setClassName("com.vstab.test", "app.vstab.DocumentFixtureActivity")
                 .putExtra("revoke", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         waitFor(() -> {
             try { external("app.js"); return false; }
@@ -116,7 +116,7 @@ public final class SharedDocumentManagerTest {
         assertTrue(error.get(), error.get().contains("revoked") || error.get().contains("read only"));
         assertEquals("unsent edit survives revoked permission\n", readUtf8(local.toPath()));
         manager.close(); manager = null;
-        context.startActivity(new Intent().setClassName("app.vstab.test", "app.vstab.DocumentFixtureActivity")
+        context.startActivity(new Intent().setClassName("com.vstab.test", "app.vstab.DocumentFixtureActivity")
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         waitFor(() -> {
             try { return original.equals(external("app.js")); }

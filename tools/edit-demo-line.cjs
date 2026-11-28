@@ -26,7 +26,7 @@ const {CDP}=require('./cdp.cjs');
     await c.text(replacement);
     await c.key('s','KeyS',83,2);
     await new Promise(r=>setTimeout(r,600));
-    const report={capturedAt:new Date().toISOString(),environment:'Actual Android WebView in app.vstab',
+    const report={capturedAt:new Date().toISOString(),environment:'Actual Android WebView in com.vstab',
       method:'Code OSS editor UI mouse and keyboard input; no direct file/model write',filename,line,replacement,focused,
       title:await c.evaluate('document.title'),origin:await c.evaluate('location.origin'),
       renderedEditorText:await c.evaluate(`document.querySelector('.monaco-editor[data-uri*='+${JSON.stringify(JSON.stringify(filename))}+']').innerText`)};

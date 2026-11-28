@@ -16,7 +16,7 @@ async function until(fn, timeout = 30000) {
   throw new Error('Local persistent terminal proof timed out.');
 }
 function read(filename) {
-  try { return f.adb('exec-out', 'run-as', 'app.vstab', 'cat', filename).toString().trim(); }
+  try { return f.adb('exec-out', 'run-as', 'com.vstab', 'cat', filename).toString().trim(); }
   catch { return ''; }
 }
 async function selectNamed(c, sessionName) {
@@ -57,11 +57,11 @@ async function screenshot(name) {
   fs.mkdirSync(OUTPUT, {recursive: true});
   const apkPath = path.resolve(process.env.VSTAB_CANDIDATE_APK || path.join(ROOT, 'android/app/build/outputs/apk/debug/app-debug.apk'));
   const apkSha256 = crypto.createHash('sha256').update(fs.readFileSync(apkPath)).digest('hex');
-  const report = {schema: 1, capturedAt: new Date().toISOString(), environment: 'Actual Android API36 x86_64 tablet emulator app.vstab',
+  const report = {schema: 1, capturedAt: new Date().toISOString(), environment: 'Actual Android API36 x86_64 tablet emulator com.vstab',
     apkSha256, sessionName: name, checks: {}, screenshots: [], limits: ['Device reboot and Android force-stop can end on-device shells.']};
   let c, failure;
   try {
-    const installedPath = f.adb('shell', 'pm', 'path', 'app.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
+    const installedPath = f.adb('shell', 'pm', 'path', 'com.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
     const installedSha = f.adb('exec-out', 'sha256sum', installedPath).toString().match(/^[a-f0-9]{64}/)?.[0];
     report.installedApkSha256 = installedSha;
     assert.equal(installedSha, apkSha256, 'The installed APK must match the candidate APK being reported.');
@@ -111,7 +111,7 @@ async function screenshot(name) {
     report.screenshots.push(await screenshot('02-persistent-terminal-restored-final-apk.png'));
     report.shellBeforeStop = processRow(pid);
     assert.ok(report.shellBeforeStop, 'Independent Android ps must observe the actual live PTY shell.');
-    const daemonCommand = f.adb('exec-out', 'run-as', 'app.vstab', 'cat', '/proc/' + report.shellBeforeStop.parentPid + '/cmdline').toString().replaceAll('\0',' ');
+    const daemonCommand = f.adb('exec-out', 'run-as', 'com.vstab', 'cat', '/proc/' + report.shellBeforeStop.parentPid + '/cmdline').toString().replaceAll('\0',' ');
     report.daemonCommand = daemonCommand; report.checks.version2EngineObserved = daemonCommand.includes('vstab-pty-v2-');
     assert.ok(report.checks.version2EngineObserved, 'The actual PTY parent must run the new version-2 engine.');
     await f.command(c, 'vstab: Stop Persistent Terminal...');

@@ -238,7 +238,7 @@ function listening(address) {
   catch (error) { if (error.status === 1) return false; throw error; }
 }
 async function returnToApp() {
-  f.adb('shell', 'am', 'start', '-n', 'app.vstab/.MainActivity', '--activity-reorder-to-front');
+  f.adb('shell', 'am', 'start', '-n', 'com.vstab/app.vstab.MainActivity', '--activity-reorder-to-front');
   return workspace(false);
 }
 async function stopForward(c, remotePort) {
@@ -257,13 +257,13 @@ async function main() {
   fs.mkdirSync(OUT, {recursive: true});
   const apk = path.resolve(process.env.VSTAB_CANDIDATE_APK || 'android/app/build/outputs/apk/debug/app-debug.apk');
   const report = {schema: 1, runId, marker, capturedAt: new Date().toISOString(),
-    environment: 'Android API36 x86_64 tablet emulator, actual app.vstab APK and external Android browser, isolated Linux SSH fixture',
+    environment: 'Android API36 x86_64 tablet emulator, actual com.vstab APK and external Android browser, isolated Linux SSH fixture',
     proofMethod: 'Normal SSH host picker, Ports Add Port, Ports row Open in Browser, Stop Forwarding Port, Close Remote Connection; independent remote HTTP/WebSocket logs and Android TCP probes.',
     apkSha256: crypto.createHash('sha256').update(fs.readFileSync(apk)).digest('hex'), screenshots: [], checks: {},
     limits: ['Emulator proof does not establish physical Android ARM64 qualification.', 'Forwarding lasts while the Android app and SSH connection remain alive.']};
   let c, failure, started = false;
   try {
-    const installedPath = f.adb('shell', 'pm', 'path', 'app.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
+    const installedPath = f.adb('shell', 'pm', 'path', 'com.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
     report.installedApkSha256 = f.adb('exec-out', 'sha256sum', installedPath).toString().match(/^[a-f0-9]{64}/)?.[0];
     assert.equal(report.installedApkSha256, report.apkSha256, 'The installed APK must match the candidate.');
     startService(); started = true;

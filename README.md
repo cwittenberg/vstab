@@ -2,7 +2,7 @@
 
 # VStab
 
-VS Code for tablets.
+VS Code for Android tablets.
 
 ## Features
 
@@ -34,3 +34,5 @@ VS Code for tablets.
 [More screenshots](screenshots/README.md)
 
 [Get started](android/README.md)
+
+[Privacy policy](PRIVACY.md)

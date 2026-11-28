@@ -50,7 +50,7 @@ def forward_devtools():
     deadline=time.monotonic()+20
     socket=None
     while time.monotonic()<deadline:
-        result=subprocess.run([ADB,'-s',SERIAL,'shell','pidof','app.vstab'],capture_output=True,text=True)
+        result=subprocess.run([ADB,'-s',SERIAL,'shell','pidof','com.vstab'],capture_output=True,text=True)
         if result.returncode==0 and result.stdout.strip():
             pid=result.stdout.strip().split()[0]
             candidate='webview_devtools_remote_'+pid

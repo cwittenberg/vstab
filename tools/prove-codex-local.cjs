@@ -20,8 +20,8 @@ const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const quote = value => "'" + String(value).replace(/'/g, "'\\''") + "'";
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const adb = (...args) => execFileSync(ADB, ['-s', SERIAL, ...args], {maxBuffer: 16 * 1024 * 1024, timeout: 30000});
-const appRead = filename => adb('exec-out', 'run-as', 'app.vstab', 'cat', filename);
-const appShell = script => adb('shell', 'run-as app.vstab sh -c ' + quote(script)).toString();
+const appRead = filename => adb('exec-out', 'run-as', 'com.vstab', 'cat', filename);
+const appShell = script => adb('shell', 'run-as com.vstab sh -c ' + quote(script)).toString();
 
 function installedCodex() {
   try {
@@ -91,7 +91,7 @@ async function main() {
   let client, failure;
   try {
     report.apkSha256 = digest(fs.readFileSync(APK));
-    const installedPath = adb('shell', 'pm', 'path', 'app.vstab').toString().trim().split('\n')
+    const installedPath = adb('shell', 'pm', 'path', 'com.vstab').toString().trim().split('\n')
       .find(line => line.endsWith('/base.apk'))?.replace(/^package:/, '');
     assert.ok(installedPath);
     report.installedApkSha256 = adb('shell', 'sha256sum ' + quote(installedPath)).toString().trim().split(/\s+/)[0];

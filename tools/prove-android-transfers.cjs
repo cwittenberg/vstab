@@ -140,7 +140,7 @@ async function menu(c, title) {
   adb('shell','input','tap',String(Math.round(left+point.x*(right-left)/point.width)),String(Math.round(top+point.y*(bottom-top)/point.height)));
 }
 function workspaceBytes(folder, name) {
-  if (mode === 'local') return adb('exec-out', 'run-as', 'app.vstab', 'cat', folder + '/' + name);
+  if (mode === 'local') return adb('exec-out', 'run-as', 'com.vstab', 'cat', folder + '/' + name);
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, '.local/demo/connection.json'), 'utf8'));
   return execFileSync('docker', ['exec', '--user', config.username, config.container, 'cat', folder + '/' + name],{maxBuffer:96*1024*1024});
 }
@@ -148,7 +148,7 @@ function workspaceExists(folder,name) {
   try {
     // exec-out deliberately has no shell status protocol: a missing cat can
     // return its error text with exit0. Use shell's exit status for existence.
-    if(mode==='local')adb('shell','run-as','app.vstab','test','-e',folder+'/'+name);
+    if(mode==='local')adb('shell','run-as','com.vstab','test','-e',folder+'/'+name);
     else {
       const config=JSON.parse(fs.readFileSync(path.join(ROOT,'.local/demo/connection.json'),'utf8'));
       execFileSync('docker',['exec','--user',config.username,config.container,'test','-e',folder+'/'+name]);
@@ -158,7 +158,7 @@ function workspaceExists(folder,name) {
 }
 function removeOwnedDestination(folder,name) {
   assert.ok(fixtureNames.includes(name),'Only a controlled transfer fixture may be cleared');
-  if(mode==='local')adb('shell','run-as','app.vstab','rm','-f',folder+'/'+name);
+  if(mode==='local')adb('shell','run-as','com.vstab','rm','-f',folder+'/'+name);
   else {
     const config=JSON.parse(fs.readFileSync(path.join(ROOT,'.local/demo/connection.json'),'utf8'));
     execFileSync('docker',['exec','--user',config.username,config.container,'python3','-c',
@@ -174,7 +174,7 @@ async function checkWorkspace(folder, name) {
     try { const value=workspaceBytes(folder,name);return value.equals(expected) ? value : false; } catch { return false; }
   });
   assert.equal(digest(bytes), digest(expected));
-  return {name, bytes: bytes.length, sha256: digest(bytes), independentRead: mode === 'local' ? 'adb run-as app.vstab cat' : 'isolated Docker SSH-host cat'};
+  return {name, bytes: bytes.length, sha256: digest(bytes), independentRead: mode === 'local' ? 'adb run-as com.vstab cat' : 'isolated Docker SSH-host cat'};
 }
 async function upload(c, folder, cancel = false,sourceName='android-upload.bin') {
   const destinationAbsentBefore=removeOwnedDestination(folder,sourceName);
@@ -287,7 +287,7 @@ async function downloadLarge(c, folder) {
   fs.writeFileSync(file, bytes);
   if (mode === 'local') {
     adb('push', file, '/data/local/tmp/vstab-transfer-large.bin');
-    adb('shell', 'run-as', 'app.vstab', 'cp', '/data/local/tmp/vstab-transfer-large.bin', folder + '/' + name);
+    adb('shell', 'run-as', 'com.vstab', 'cp', '/data/local/tmp/vstab-transfer-large.bin', folder + '/' + name);
   } else {
     const config = JSON.parse(fs.readFileSync(path.join(ROOT, '.local/demo/connection.json'), 'utf8'));
     execFileSync('docker', ['exec', '-i', '--user', config.username, config.container, 'python3', '-c',
@@ -303,7 +303,7 @@ async function run() {
   const candidate = process.env.VSTAB_CANDIDATE_APK;
   assert.ok(candidate, 'Select the immutable candidate with VSTAB_CANDIDATE_APK');
   const sha = digest(fs.readFileSync(candidate));
-  const apkPath = adb('shell', 'pm', 'path', 'app.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
+  const apkPath = adb('shell', 'pm', 'path', 'com.vstab').toString().trim().split('\n')[0].replace(/^package:/, '');
   assert.equal(adb('exec-out','sha256sum',apkPath).toString().split(/\s/)[0], sha);
   let record = {capturedAt: new Date().toISOString(), serial: process.env.VSTAB_ANDROID_SERIAL, mode, apkSha256: sha, checks: {}};
   let c;

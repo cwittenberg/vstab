@@ -13,7 +13,7 @@ args = parser.parse_args()
 serial = os.environ.get('VSTAB_ANDROID_SERIAL', 'emulator-5580')
 result = subprocess.run(['adb', '-s', serial, 'shell', 'am', 'instrument', '-w',
                          '-e', 'class', args.classes,
-                         'app.vstab.test/androidx.test.runner.AndroidJUnitRunner'],
+                         'com.vstab.test/androidx.test.runner.AndroidJUnitRunner'],
                         capture_output=True, text=True)
 output = result.stdout + result.stderr
 args.output.parent.mkdir(parents=True, exist_ok=True)

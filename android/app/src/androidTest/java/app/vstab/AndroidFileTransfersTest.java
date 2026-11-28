@@ -43,7 +43,7 @@ public final class AndroidFileTransfersTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         Uri authority = Uri.parse("content://" + TestDocumentsProvider.AUTHORITY);
         context.startActivity(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        context.startActivity(new Intent().setClassName("app.vstab.test", "app.vstab.DocumentFixtureActivity")
+        context.startActivity(new Intent().setClassName("com.vstab.test", "app.vstab.DocumentFixtureActivity")
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         Bundle fixture = null;
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);

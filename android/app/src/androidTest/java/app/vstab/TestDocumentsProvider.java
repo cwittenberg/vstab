@@ -22,7 +22,7 @@ import java.util.zip.DeflaterOutputStream;
 
 /** Test APK fixture exercising the actual ContentResolver/SAF transport. */
 public final class TestDocumentsProvider extends DocumentsProvider {
-    public static final String AUTHORITY = "app.vstab.test.documents";
+    public static final String AUTHORITY = "com.vstab.test.documents";
     private static final String[] DOCUMENT_COLUMNS = {
             DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_FLAGS,

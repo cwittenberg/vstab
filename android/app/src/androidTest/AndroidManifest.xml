@@ -8,7 +8,7 @@
              repeatable device screenshots. Never packaged in the production app. -->
         <provider
             android:name="app.vstab.TestDocumentsProvider"
-            android:authorities="app.vstab.test.documents"
+            android:authorities="com.vstab.test.documents"
             android:exported="true"
             android:permission="android.permission.MANAGE_DOCUMENTS"
             android:grantUriPermissions="true">

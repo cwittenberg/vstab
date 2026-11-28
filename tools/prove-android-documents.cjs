@@ -28,7 +28,7 @@ const temporaryFile = path.join(root, '.local', `${prefix}-external.js`);
 let client;
 
 function installedApkSha256() {
-  const apk = adb('shell', 'pm', 'path', 'app.vstab').toString().trim().replace(/^package:/, '');
+  const apk = adb('shell', 'pm', 'path', 'com.vstab').toString().trim().replace(/^package:/, '');
   assert.match(apk, /^\/data\/app\/[A-Za-z0-9_./=+~\-]+\.apk$/, 'Unexpected installed APK path');
   return adb('shell', 'sha256sum', apk).toString().trim().split(/\s+/)[0];
 }

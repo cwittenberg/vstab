@@ -29,7 +29,7 @@ const {CDP}=require('./cdp.cjs');
       }
       return checks;
     })()`);
-    const report={capturedAt:new Date().toISOString(),environment:'Actual Android emulator WebView inside app.vstab',
+    const report={capturedAt:new Date().toISOString(),environment:'Actual Android emulator WebView inside com.vstab',
       editor:await c.evaluate('({title:document.title,origin:location.origin,bodyText:document.body.innerText.slice(0,1800)})'),
       apkResponses:responses.filter(r=>r.source==='apk').length,resourceChecks,responses};
     if(!report.apkResponses)throw new Error('No APK-served editor responses were observed');

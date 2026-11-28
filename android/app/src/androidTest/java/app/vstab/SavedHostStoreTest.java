@@ -46,7 +46,7 @@ public final class SavedHostStoreTest {
     }
 
     @Test public void migrationRetainsMetadataAndKeepsCredentialReferencesNative() throws Exception {
-        String uri = "content://vstab.test.documents/private-key";
+        String uri = "content://com.vstab.test.documents/private-key";
         context.getSharedPreferences("last-profile", Context.MODE_PRIVATE).edit()
                 .putString("host", "example.test").putString("port", "2222").putString("user", "developer")
                 .putBoolean("use-key", true).putString("key-uri", uri).putString("folder", "~/project")
