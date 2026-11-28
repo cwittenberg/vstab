@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const {fork} = require('node:child_process');
+const {fork, spawnSync} = require('node:child_process');
 if (process.argv[2] === '--child') {
   process.send({platform: process.platform, executable: process.execPath});
   process.exit(0);
@@ -15,6 +15,17 @@ async function main() {
   const base = __dirname;
   const results = {platform: process.platform, architecture: process.arch,
     node: process.version, executable: process.execPath};
+  const git = spawnSync('git', ['--version'], {encoding: 'utf8', timeout: 10000});
+  results.git = git.status === 0 && /^git version /.test(git.stdout || '');
+  if (!results.git) throw new Error('The bundled Git executable did not start');
+  // Resolve defaults without opening the network or reading a user's config.
+  // Termux's prebuilt SSH silently reads another app's HOME, so checking -V
+  // alone cannot establish that Git will find the shared keys and known_hosts.
+  const ssh = spawnSync('ssh', ['-F', '/dev/null', '-G', 'vstab-runtime-probe.invalid'],
+    {encoding: 'utf8', timeout: 10000});
+  results.ssh = ssh.status === 0 && (ssh.stdout || '').split('\n')
+    .some(line => line.startsWith('userknownhostsfile ') && line.includes(path.join(process.env.HOME, '.ssh/known_hosts')));
+  if (!results.ssh) throw new Error('The bundled SSH client did not resolve the Android home');
   results.fork = await new Promise((resolve, reject) => {
     const child = fork(__filename, ['--child'], {silent: true});
     const timer = setTimeout(() => {child.kill(); reject(new Error('native Node fork timeout'));}, 10000);

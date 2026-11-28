@@ -87,6 +87,7 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     private int formRevision;
     private SavedHostStore savedHosts;
     private final java.util.Map<WebView, NativeSshBridge> sshBridges = new java.util.IdentityHashMap<>();
+    private final java.util.Map<WebView, AuthCallbackServer> authCallbacks = new java.util.IdentityHashMap<>();
     private final java.util.concurrent.ExecutorService keyWorker = java.util.concurrent.Executors.newSingleThreadExecutor();
     private String sshPhase = "disconnected", sshMessage = "", sshProfileId = "", sshConnectionId = "";
     private String importHostId;
@@ -406,6 +407,14 @@ public class MainActivity extends Activity implements ConnectionController.Obser
         editor.setOrientation(LinearLayout.VERTICAL);
         editor.setBackgroundColor(Color.rgb(31, 31, 31));
         web = new WebView(this);
+        final WebView callbackView = web;
+        authCallbacks.put(web, client.authCallbacks);
+        client.authCallbacks.receive(address -> callbackView.post(() -> {
+            if (authCallbacks.get(callbackView) != client.authCallbacks
+                    || !NativeSshBridge.matchesOrigin(callbackView.getUrl(), origin)) return;
+            callbackView.evaluateJavascript("globalThis.dispatchEvent(new CustomEvent('vstab-auth-callback',{detail:"
+                    + JSONObject.quote(address) + "}));", null);
+        }));
         // Also removes cache entries written by the first alpha before the
         // bundled client adopted no-store. IndexedDB and workspace files stay.
         web.clearCache(true);
@@ -1056,6 +1065,8 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     }
 
     private void destroyWorkbench(WebView target) {
+        AuthCallbackServer callbacks = authCallbacks.remove(target);
+        if (callbacks != null) callbacks.close();
         if (fileTransfers != null) fileTransfers.invalidate(target);
         if (pendingSshPrompt != null && pendingSshPrompt.source == target) cancelSshPrompt();
         NativeSshBridge bridge = sshBridges.remove(target);

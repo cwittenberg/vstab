@@ -5,8 +5,8 @@
   "architectures": {
     "arm64-v8a": {
       "termuxArchitecture": "aarch64",
-      "indexSha256": "b49c41f085f087b096a3ae21e30492e1e7a9b6a07cb151dcd827a3ebf799041c",
-      "inReleaseSha256": "2c342a621660994f3187ef16cec4f5d1efb4f560f15a49c6718d9e7ca3ee4241",
+      "indexSha256": "d03e445e1224bebf07b4b76e0821bc2d24c2647d8afab679b3f6374b6987396b",
+      "inReleaseSha256": "327c31e6a34c603dcf4c2b75bfe5f7d5f6e1dcc3e3989ee14f48cf4308faf062",
       "packages": [
         {
           "Package": "nodejs-lts",
@@ -42,6 +42,20 @@
           "Filename": "pool/main/r/ripgrep/ripgrep_16.0.0_aarch64.deb",
           "SHA256": "b24d44fd66baf62aeee78c12fabe9dcac6424add0daa271645312d4276be9f59",
           "Size": "1244464"
+        },
+        {
+          "Package": "openssh",
+          "Version": "10.6p2",
+          "Filename": "pool/main/o/openssh/openssh_10.6p2_aarch64.deb",
+          "SHA256": "e5db7ee07fe619eec9044f2cd29d7ca49f5ff4c0b5a1dbcdcccfbcb3849077d8",
+          "Size": "969908"
+        },
+        {
+          "Package": "codex",
+          "Version": "0.172.0",
+          "Filename": "pool/main/c/codex/codex_0.172.0_aarch64.deb",
+          "SHA256": "5998bb3ec96eef82c29c4f9a17f996dc5736d784d286b94df0f0ba9cf7d364c1",
+          "Size": "92582720"
         },
         {
           "Package": "readline",
@@ -175,13 +189,48 @@
           "Filename": "pool/main/t/termux-licenses/termux-licenses_2.2_all.deb",
           "SHA256": "a3265cd1cf7d04754f2fb683eaf5b21918263792fd714457127900c1d6d9bcd9",
           "Size": "52276"
+        },
+        {
+          "Package": "ldns",
+          "Version": "1.9.2",
+          "Filename": "pool/main/l/ldns/ldns_1.9.2_aarch64.deb",
+          "SHA256": "fcc8feb86be077e59cb3fd1f05867061ea1e985b11a36d30603ce1cdecd6b68a",
+          "Size": "305108"
+        },
+        {
+          "Package": "krb5",
+          "Version": "1.22.3",
+          "Filename": "pool/main/k/krb5/krb5_1.22.3_aarch64.deb",
+          "SHA256": "2f8b1831df2d00f821d71b44da2babada49097bc71a1ffcd25bcdbeff466564a",
+          "Size": "902704"
+        },
+        {
+          "Package": "libdb",
+          "Version": "18.1.40-6",
+          "Filename": "pool/main/libd/libdb/libdb_18.1.40-6_aarch64.deb",
+          "SHA256": "60bfb4e8bed834d334806f39aae27ffc11ab819f2da2f9abb7a3b2d37970a532",
+          "Size": "496988"
+        },
+        {
+          "Package": "libandroid-glob",
+          "Version": "0.6-3",
+          "Filename": "pool/main/liba/libandroid-glob/libandroid-glob_0.6-3_aarch64.deb",
+          "SHA256": "2276ae8adedf0db76c2f4ffc94cc4cceb2f4f5d78e021b54e2e046d1233e7826",
+          "Size": "7032"
+        },
+        {
+          "Package": "libresolv-wrapper",
+          "Version": "1.1.8",
+          "Filename": "pool/main/libr/libresolv-wrapper/libresolv-wrapper_1.1.8_aarch64.deb",
+          "SHA256": "41c989a4c6f85575ac542ab5d710fead6fec4cb41941f634666a68a765c13370",
+          "Size": "11248"
         }
       ]
     },
     "x86_64": {
       "termuxArchitecture": "x86_64",
-      "indexSha256": "6f5ce0ab48c3043ec60704fc215724d29daf5a52e20635173700bfe160485903",
-      "inReleaseSha256": "2c342a621660994f3187ef16cec4f5d1efb4f560f15a49c6718d9e7ca3ee4241",
+      "indexSha256": "0e82fc1ef595cfc4b0c5fdfb4a579c116c12c9b10a8387a3f001b4d6c755df9c",
+      "inReleaseSha256": "327c31e6a34c603dcf4c2b75bfe5f7d5f6e1dcc3e3989ee14f48cf4308faf062",
       "packages": [
         {
           "Package": "nodejs-lts",
@@ -217,6 +266,20 @@
           "Filename": "pool/main/r/ripgrep/ripgrep_16.0.0_x86_64.deb",
           "SHA256": "b7cdac7b0d739a2d27777b6f33aae0c11c331424f98e99ff3ca3c09c82f5a56d",
           "Size": "1414620"
+        },
+        {
+          "Package": "openssh",
+          "Version": "10.6p2",
+          "Filename": "pool/main/o/openssh/openssh_10.6p2_x86_64.deb",
+          "SHA256": "395ba9709d66727bc5e7fabc6ccb2bd93dfff99389fe4bc629ba1098c01261be",
+          "Size": "1012140"
+        },
+        {
+          "Package": "codex",
+          "Version": "0.172.0",
+          "Filename": "pool/main/c/codex/codex_0.172.0_x86_64.deb",
+          "SHA256": "7dd121b01311d87f9b910c4410136a76aa59eb506c65370eec081e77e4135758",
+          "Size": "106522124"
         },
         {
           "Package": "readline",
@@ -350,6 +413,41 @@
           "Filename": "pool/main/t/termux-licenses/termux-licenses_2.2_all.deb",
           "SHA256": "a3265cd1cf7d04754f2fb683eaf5b21918263792fd714457127900c1d6d9bcd9",
           "Size": "52276"
+        },
+        {
+          "Package": "ldns",
+          "Version": "1.9.2",
+          "Filename": "pool/main/l/ldns/ldns_1.9.2_x86_64.deb",
+          "SHA256": "6d6f31927f09d355757de2fb73e7ab278c2c5dccd008d31d5ccb9f24c115b08e",
+          "Size": "317248"
+        },
+        {
+          "Package": "krb5",
+          "Version": "1.22.3",
+          "Filename": "pool/main/k/krb5/krb5_1.22.3_x86_64.deb",
+          "SHA256": "9ee50cda92909e8a491bbacef6c30e14a6e4f6bef0fa3b363b75e4eeb13a3bf9",
+          "Size": "963600"
+        },
+        {
+          "Package": "libdb",
+          "Version": "18.1.40-6",
+          "Filename": "pool/main/libd/libdb/libdb_18.1.40-6_x86_64.deb",
+          "SHA256": "ea4f216fb8472dbc7a9876eedb7f40c0f33d6be3a48109d4bf32b32d2c67b2e5",
+          "Size": "535176"
+        },
+        {
+          "Package": "libandroid-glob",
+          "Version": "0.6-3",
+          "Filename": "pool/main/liba/libandroid-glob/libandroid-glob_0.6-3_x86_64.deb",
+          "SHA256": "33b5d2ce934e89d50363e7ea267cea697da937d14de9fcea78cc7271956ef86e",
+          "Size": "7256"
+        },
+        {
+          "Package": "libresolv-wrapper",
+          "Version": "1.1.8",
+          "Filename": "pool/main/libr/libresolv-wrapper/libresolv-wrapper_1.1.8_x86_64.deb",
+          "SHA256": "0d4456f8ffb58f8fc072ae00c5317739428e02d65e46d0bdb057ed3053013079",
+          "Size": "11868"
         }
       ]
     }

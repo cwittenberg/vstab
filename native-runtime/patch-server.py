@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Adapt the pinned paired Code OSS server JS for an actual Bionic Node process.
 
-No CPU/OS emulation, global process.platform spoof, protocol version override,
-foreign binary execution, worker-thread rewrite or replacement editor is used.
+Keeps process.platform as Android and retains the paired server protocol and
+extension host. Platform-specific extension payloads use scoped runtime adapters.
 """
 from __future__ import annotations
 
@@ -20,6 +20,28 @@ IDENT = r'[A-Za-z_$][\w$]*'
 PLATFORM = re.compile(r'(?P<flag>' + IDENT + r')=(?P<proc>' + IDENT + r')\.platform==="linux",(?P<snap>' + IDENT + r')=(?P=flag)&&')
 USER_DATA = re.compile(r'case"linux":(?=' + IDENT + r'=process\.env\.XDG_CONFIG_HOME)')
 WATCHDOG = re.compile(r'try\{(?P<body>(?P<binding>' + IDENT + r')=(?P<require>' + IDENT + r')\("@vscode/native-watchdog"\),(?P=binding)\.start\((?P<init>' + IDENT + r')\.parentPid\))\}catch')
+EXTENSION_TARGET_HELPER = '''
+// Only Claude's standalone helper needs the public musl extension variant.
+// Keep Linux targeting for other extensions, including Codex and Node addons.
+function __vstabExtensionTarget(identifier, target) {
+    if (process.platform !== "android" || identifier.toLowerCase() !== "anthropic.claude-code") return target;
+    return process.arch === "arm64" ? "alpine-arm64" : process.arch === "x64" ? "alpine-x64" : target;
+}
+'''
+
+
+def patch_extension_targets(source: str) -> str:
+    replacements = {
+        'async isExtensionPlatformCompatible(e){let n=await this.getTargetPlatform();':
+            'async isExtensionPlatformCompatible(e){let n=__vstabExtensionTarget(e.identifier.id,await this.getTargetPlatform());',
+        'async getCompatibleVersion(e,n,o,i){let s=await this.getTargetPlatform(),a=null;':
+            'async getCompatibleVersion(e,n,o,i){let s=__vstabExtensionTarget(e.identifier.id,await this.getTargetPlatform()),a=null;',
+    }
+    for original, replacement in replacements.items():
+        if source.count(original) != 1:
+            raise ValueError('Cannot identify the pinned extension-platform installation method')
+        source = source.replace(original, replacement, 1)
+    return EXTENSION_TARGET_HELPER + source
 
 
 def sha(data: bytes) -> str:
@@ -51,6 +73,9 @@ def patch_file(relative: str, source: str) -> tuple[str, dict]:
         expected_watchdog = 1 if relative == 'out/vs/workbench/api/node/extensionHostProcess.js' else 0
         if counts['optionalNativeWatchdogGuard'] != expected_watchdog:
             raise ValueError(f'{relative}: unexpected optional watchdog load count')
+        if relative == 'out/server-main.js':
+            source = patch_extension_targets(source)
+            counts['scopedClaudeAlpineTarget'] = 2
     else:
         needle = 'export function binPathFor({ os, arch }) {'
         if source.count(needle) != 1:

@@ -20,6 +20,7 @@ import java.util.Map;
 
 /** Serves the actual, version-pinned Code OSS client from APK assets. */
 final class BundledWorkbench {
+    final AuthCallbackServer authCallbacks;
     private final Context context;
     private final AssetManager assets;
     private final ConnectionController.Ready session;
@@ -42,7 +43,9 @@ final class BundledWorkbench {
         }
         staticPrefix = leadingSlash(manifest.getString("staticPrefix"));
         vsBase = manifest.optString("vsBase", staticPrefix.substring(0, staticPrefix.lastIndexOf("/static/")));
-        startup = render().getBytes(StandardCharsets.UTF_8);
+        authCallbacks = new AuthCallbackServer();
+        try { startup = render().getBytes(StandardCharsets.UTF_8); }
+        catch (Exception error) { authCallbacks.close(); throw error; }
     }
 
     String provenance() {
@@ -111,10 +114,13 @@ final class BundledWorkbench {
         // it to a newly opened document model. Use Monaco's supported textarea
         // input path so Android Open with receives ordinary edits reliably.
         defaults.put("editor.editContext", false);
+        if (session.localRuntime) defaults.put("claudeCode.claudeProcessWrapper",
+                new java.io.File(context.getApplicationInfo().nativeLibraryDir, "libclaude-launch.so").getAbsolutePath());
         configuration.put("configurationDefaults", defaults);
         configuration.put("remoteAuthority", "remote");
         configuration.put("userDataPath", session.home + "/.local/share/vstab/user-data");
         configuration.put("callbackRoute", trimLeading(vsBase) + "/callback");
+        configuration.put("vstabAuthCallbackUrl", authCallbacks.url());
         if (session.localRuntime) {
             configuration.put("folderUri", new JSONObject().put("scheme", "vscode-remote").put("authority", "remote").put("path", session.folder));
         } else configuration.remove("folderUri");

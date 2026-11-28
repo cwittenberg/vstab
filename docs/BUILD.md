@@ -14,8 +14,10 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 npm ci --prefix workbench/local --ignore-scripts --no-audit --no-fund
 ./scripts/prepare-web-extensions.sh
 python3 scripts/prepare-android-runtime.py
+python3 scripts/build-android-openssh.py --ndk "$ANDROID_NDK_HOME"
 python3 scripts/package-android-backend.py
 python3 scripts/build-android-addons.py --ndk "$ANDROID_NDK_HOME"
+python3 scripts/build-android-claude.py --ndk "$ANDROID_NDK_HOME"
 python3 scripts/package-android-backend.py
 python3 scripts/package-workbench.py
 ./tools/build-android.sh :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug

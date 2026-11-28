@@ -57,7 +57,10 @@ def prepareLocalRuntimeLibraries = tasks.register('prepareLocalRuntimeLibraries'
     into(layout.buildDirectory.dir('generated/localRuntimeLibraries'))
     doFirst {
         ['arm64-v8a', 'x86_64'].each { abi ->
-            ['node', 'bash', 'git', 'rg', 'npm', 'npx', 'pty', 'watcher', 'vscode-sqlite3', 'argon2'].each { name ->
+            ['node', 'bash', 'git', 'rg', 'npm', 'npx', 'pty', 'watcher', 'vscode-sqlite3', 'argon2',
+             'ssh', 'ssh-keygen', 'ssh-agent', 'ssh-add', 'ssh-home', 'git-helper', 'git-envsubst',
+             'openssh-client', 'openssh-keygen', 'openssh-agent', 'openssh-add',
+             'codex', 'codex-modehost', 'ldmusl', 'seccomp-shim', 'claude-launch'].each { name ->
                 if (!file("../../.local/android-runtime/jniLibs/${abi}/lib${name}.so").isFile()) {
                     throw new GradleException("Missing Android runtime library ${abi}/lib${name}.so. Follow native-runtime/README.md.")
                 }

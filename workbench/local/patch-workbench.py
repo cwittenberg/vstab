@@ -7,7 +7,7 @@ import re
 
 MARKER = '/*vstab-native-embedder-v1*/'
 ORIGINAL_SHA256 = '6cd0f009b42cc337cd45812f3dfa3cb1886a91e29720aa60683b8c306ef08f3e'
-PATCHED_SHA256 = 'deb0e2d64a82cab85b78e5ad702d070f80f0e2c73a24d8a7ce66b596c5f240a4'
+PATCHED_SHA256 = 'e394b300b94a65b756e5c198e2eb3dde6fdc61bfbb2f3998b00ca25fe3a53197'
 
 
 def patch(source: str) -> str:
@@ -45,6 +45,11 @@ def patch(source: str) -> str:
         'resolveExternalUri:n=>{if(globalThis.__vstabControlOptions?.resolveExternalUri)return globalThis.__vstabControlOptions.resolveExternalUri(n);let r=n,a=yvt(r);', 1)
     source = source.replace(factory,
         'tunnelProvider:globalThis.__vstabControlOptions?.tunnelProvider??{tunnelFactory:', 1)
+    callback = 'urlCallbackProvider:new M8o(e.callbackRoute)'
+    if source.count(callback) != 1:
+        raise ValueError('Cannot identify the pinned URL callback provider; refusing to patch')
+    source = source.replace(callback,
+        'urlCallbackProvider:globalThis.__vstabControlOptions?.urlCallbackProvider?.(A)??new M8o(e.callbackRoute)', 1)
     tunnel_address = 'tunnelRemotePort:f.remoteAddress.port,tunnelRemoteHost:f.remoteAddress.host,localAddress:await this.resolveExternalUri(v)'
     if source.count(tunnel_address) != 1:
         raise ValueError('Cannot identify the pinned Ports local address conversion; refusing to patch')

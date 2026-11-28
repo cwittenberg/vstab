@@ -54,6 +54,8 @@ public final class NativeRuntimeBackendTest {
             JSONObject probe = manager.lastProbeForDiagnostics();
             assertEquals("ready", probe.getString("status"));
             assertEquals("android", probe.getString("platform"));
+            assertTrue("The APK-native Git executable must start", probe.getBoolean("git"));
+            assertTrue("The SSH client must use the Android app's private home", probe.getBoolean("ssh"));
             assertTrue("A real native Node child process must start", probe.getBoolean("fork"));
             assertTrue("The native PTY must execute bundled Bash", probe.getBoolean("pty"));
             assertTrue("Native SQLite must execute a query", probe.getBoolean("sqlite"));

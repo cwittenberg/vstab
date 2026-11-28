@@ -65,6 +65,11 @@ def build_abi(abi, target, ndk, prepared, headers):
     shutil.copyfile(jni/'libnpm.so',jni/'libnpx.so')
     (jni/'libnpm.so').chmod(0o755)
     (jni/'libnpx.so').chmod(0o755)
+    run([cc,'-fPIE','-pie','-O2',*page_flags,'-o',jni/'libssh.so',ROOT/'native-runtime/ssh-launcher.c'])
+    for name in ['ssh-keygen', 'ssh-agent', 'ssh-add']:
+        shutil.copyfile(jni/'libssh.so',jni/('lib'+name+'.so'))
+    run([cc,'-shared','-fPIC','-std=c11','-O2',*page_flags,'-ldl','-o',jni/'libssh-home.so',ROOT/'native-runtime/ssh-home.c'])
+    run([cc,'-fPIE','-pie','-O2',*page_flags,'-o',jni/'libgit-helper.so',ROOT/'native-runtime/git-helper-launcher.c'])
     def compile_addon(name, sources, extra, api=7):
         src = prepared[name]
         out = jni / {'node-pty':'libpty.so','@parcel/watcher':'libwatcher.so',
@@ -109,8 +114,9 @@ def build_abi(abi, target, ndk, prepared, headers):
         meta = subprocess.check_output(['readelf','-hlW',str(binary)],text=True)
         expected_machine = 'AArch64' if abi == 'arm64-v8a' else 'Advanced Micro Devices X86-64'
         if expected_machine not in meta: raise RuntimeError('wrong machine: '+str(binary))
+        minimum_alignment = 4096 if abi == 'x86_64' and binary.name == 'libldmusl.so' else 16384
         for line in meta.splitlines():
-            if line.strip().startswith('LOAD ') and int(line.split()[-1],16)<16384:
+            if line.strip().startswith('LOAD ') and int(line.split()[-1],16)<minimum_alignment:
                 raise RuntimeError('ELF is not 16KB aligned: '+str(binary))
         if 'Requesting program interpreter:' in meta and '/system/bin/linker64' not in meta:
             raise RuntimeError('not Android-linked: '+str(binary))
@@ -152,6 +158,9 @@ def main():
       'sources':{name:{'version':pin[0],'sha256':pin[1]} for name,pin in PINNED.items()},
       'argon2Source':'verified code-server4.146.0 archive node_modules/argon2 (0.45.2)',
       'npmLauncherSourceSha256':sha(ROOT/'native-runtime/npm-launcher.c'),
+      'sshLauncherSourceSha256':sha(ROOT/'native-runtime/ssh-launcher.c'),
+      'sshHomeSourceSha256':sha(ROOT/'native-runtime/ssh-home.c'),
+      'gitHelperSourceSha256':sha(ROOT/'native-runtime/git-helper-launcher.c'),
       'ndkVersion':args.ndk.name,'androidApi':30,'minimumApi':29,'elfPageAlignment':16384,
       'outputs':dict(results)},indent=2)+'\n')
     print('Both Android native addon sets built and verified.',flush=True)

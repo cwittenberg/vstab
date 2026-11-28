@@ -162,6 +162,10 @@ final class LocalRuntimeManager {
             // Android executable, never the Linux binary from its archive.
             link(new File(backend, "lib/vscode/node"), node);
             File home = new File(context.getFilesDir(), "home"); ensureDirectory(home);
+            File sshHome = new File(home, ".ssh"); ensureDirectory(sshHome);
+            Os.chmod(sshHome.getAbsolutePath(), 0700);
+            new SshKnownHosts(home).migrate(context.getSharedPreferences("ssh-host-trust", Context.MODE_PRIVATE).getAll());
+            prepareGitHelpers(backend, usr, nativeDirectory);
             File workspace = new File(context.getFilesDir(), "workspaces/default"); ensureDirectory(workspace);
             initializeWorkspace(workspace);
             File state = new File(home, ".local/share/vstab/user-data"); ensureDirectory(state);
@@ -200,6 +204,10 @@ final class LocalRuntimeManager {
             String origin = "http://localhost:" + route.port();
             List<String> command = new ArrayList<>();
             command.add(node.getAbsolutePath()); command.add("--max-old-space-size=1024");
+            org.json.JSONArray nodeArguments = manifest.optJSONArray("nodeArguments");
+            if (nodeArguments != null) for (int index = 0; index < nodeArguments.length(); index++) {
+                command.add(substitute(nodeArguments.getString(index), substitutions));
+            }
             org.json.JSONArray arguments = manifest.getJSONArray("arguments");
             for (int index = 0; index < arguments.length(); index++) command.add(substitute(arguments.getString(index), substitutions));
             publish(operation, "Starting the on-device Node extension host and terminal services…");
@@ -289,7 +297,7 @@ final class LocalRuntimeManager {
             JSONObject report = null;
             for (String line : output.split("\n")) if (line.trim().startsWith("{")) report = new JSONObject(line.trim());
             if (report == null || !"ready".equals(report.optString("status")) || !"android".equals(report.optString("platform"))) throw new IOException("The native runtime did not pass its Android self-check.");
-            for (String item : new String[]{"fork", "pty", "sqlite", "argon2", "watcher"}) if (!report.optBoolean(item)) throw new IOException("Native runtime component failed: " + item);
+            for (String item : new String[]{"git", "ssh", "fork", "pty", "sqlite", "argon2", "watcher"}) if (!report.optBoolean(item)) throw new IOException("Native runtime component failed: " + item);
             check(operation);
             return report.toString();
         } finally { if (probe.isAlive()) probe.destroyForcibly(); }
@@ -355,6 +363,33 @@ final class LocalRuntimeManager {
         if (!rc.exists()) Files.write(rc.toPath(), ("[ -r \"$HOME/.vstab-bash-env\" ] && . \"$HOME/.vstab-bash-env\"\n").getBytes(StandardCharsets.UTF_8));
         File profile = new File(home, ".bash_profile");
         if (!profile.exists()) Files.write(profile.toPath(), ("[ -r \"$HOME/.bashrc\" ] && . \"$HOME/.bashrc\"\n").getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void prepareGitHelpers(File backend, File usr, File nativeDirectory) throws Exception {
+        File launcher = nativeFile(nativeDirectory, "libgit-helper.so");
+        File dist = new File(backend, "lib/vscode/extensions/git/dist");
+        for (String name : new String[]{"askpass.sh", "askpass-empty.sh", "ssh-askpass.sh",
+                "ssh-askpass-empty.sh", "git-editor.sh", "git-editor-empty.sh"}) {
+            prepareGitHelper(new File(dist, name), launcher);
+        }
+        File[] scripts = new File(usr, "lib/git-core").listFiles();
+        if (scripts != null) for (File script : scripts) {
+            if (script.getName().endsWith(".script") || Files.isSymbolicLink(script.toPath())) continue;
+            try (InputStream input = Files.newInputStream(script.toPath())) {
+                byte[] head = new byte[128]; int length = input.read(head);
+                String first = length > 0 ? new String(head, 0, length, StandardCharsets.US_ASCII).split("\n", 2)[0] : "";
+                if (first.startsWith("#!") && (first.endsWith("/sh") || first.endsWith("/bash"))) prepareGitHelper(script, launcher);
+            }
+        }
+    }
+
+    private static void prepareGitHelper(File entry, File launcher) throws Exception {
+        File script = new File(entry.getPath() + ".script");
+        if (!script.isFile()) {
+            if (!entry.isFile() || Files.isSymbolicLink(entry.toPath())) return;
+            Files.move(entry.toPath(), script.toPath());
+        }
+        link(entry, launcher);
     }
 
     private String password(File file) throws Exception {

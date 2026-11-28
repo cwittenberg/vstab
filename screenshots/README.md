@@ -13,3 +13,5 @@ Android emulator screenshots.
 | [07 — Local coding, light theme](07-light-local-editor-and-terminal.png) | JavaScript, Node.js and Git |
 | [08 — Persistent terminal, light theme](08-light-persistent-terminal-session.png) | Attached named terminal and Node.js test output |
 | [09 — Editor and terminal, light theme](09-light-code-left-terminal-right.png) | Code left, terminal right |
+| [10 — Remote port forwarding](remote-port-forwarding.png) | Remote web app beside its SSH workspace, opened in the Android browser |
+| [11 — Codex via SSH](11-codex-running.png) | OpenAI Codex running in an SSH workspace |

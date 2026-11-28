@@ -6,6 +6,10 @@ VS Code for tablets.
 
 ![SSH and local projects in split screen](screenshots/03-independent-split-screen-workspaces.png)
 
+![Remote port forwarding with a browser preview](screenshots/remote-port-forwarding.png)
+
+![OpenAI Codex running in an SSH workspace](screenshots/11-codex-running.png)
+
 [More screenshots](screenshots/README.md)
 
 ## Features

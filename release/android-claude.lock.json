@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "branch": "v3.23",
+  "architectures": {
+    "arm64-v8a": {
+      "architecture": "aarch64",
+      "version": "1.2.5-r24",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/musl-1.2.5-r24.apk",
+      "apkSha256": "d7043c549029c98d438e9bc94213b006e5c88540eb58d1f5b0f0d1d56dbf9c98",
+      "loaderSha256": "652a04bcb0326733f762eca799887bbc9e070df0a0d6668238769f6dfcdc77c2",
+      "indexSha256": "35d8c657640643293aad07d4cfc15c0151b1be67d46363a67ef13b58c7a16ed2",
+      "signingKey": ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-616ae350.rsa.pub"
+    },
+    "x86_64": {
+      "architecture": "x86_64",
+      "version": "1.2.5-r24",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/x86_64/musl-1.2.5-r24.apk",
+      "apkSha256": "d49d703392f1a6d2fe822db1b57e61735063077e1ad846d5f40d79fe507ec727",
+      "loaderSha256": "01e3b793ecda1146c4853dfa350e0515f2137f380fb9fa2370428f7bf9481148",
+      "indexSha256": "a22ab71aacf78d5e44868740163e2b94faa7a6b77090796a494318ef46e6db58",
+      "signingKey": ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    }
+  }
+}

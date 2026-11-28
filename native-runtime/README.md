@@ -3,10 +3,15 @@
 Includes Node.js, Bash, Git, ripgrep, npm/npx and native extension dependencies.
 Requires Linux x86_64 and Android NDK r28 to build.
 
+OpenSSH clients are built from the pinned portable source so they use the same
+private SSH configuration, imported keys and known hosts as Remote Explorer.
+
 ```sh
 python3 scripts/prepare-android-runtime.py
+python3 scripts/build-android-openssh.py --ndk "$ANDROID_NDK_HOME"
 python3 scripts/package-android-backend.py
 python3 scripts/build-android-addons.py --ndk "$ANDROID_NDK_HOME"
+python3 scripts/build-android-claude.py --ndk "$ANDROID_NDK_HOME"
 python3 scripts/package-android-backend.py
 ```
 

@@ -1,5 +1,6 @@
 import {installFileTransfers} from './file-transfers.mjs';
 import {createPortForwarding} from './port-forwarding.mjs';
+import {createAuthCallbackProvider} from './auth-callbacks.mjs';
 
 const EXTENSION_ID = 'vstab.android-controls';
 const MAX_BYTES = 512 * 1024;
@@ -167,12 +168,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const integration = createNativeControlIntegration({pasteFromAndroid: () => transfers.pasteFromAndroid({force: true})});
   const forwarding = createPortForwarding({request: (method, params) => integration.request(method, params),
     local: location.hostname === 'localhost', workbenchAuthority: location.host});
-  Object.assign(integration.options, {tunnelProvider: forwarding.tunnelProvider, resolveExternalUri: forwarding.resolveExternalUri});
+  const configuration = JSON.parse(document.getElementById('vscode-workbench-web-configuration')?.getAttribute('data-settings') || '{}');
+  const callbackUrl = configuration.vstabAuthCallbackUrl;
+  let callbacks;
+  Object.assign(integration.options, {tunnelProvider: forwarding.tunnelProvider,
+    resolveExternalUri: uri => uri.authority === new URL(callbackUrl).host ? Promise.resolve(uri) : forwarding.resolveExternalUri(uri),
+    urlCallbackProvider: uri => callbacks = createAuthCallbackProvider({callbackUrl, uri})});
   integration.onEvent(message => { if (message.event === 'stateChanged') forwarding.updateState(message.state); });
   transfers = installFileTransfers({hostWindow: window, request: (method, params) => integration.request(method, params),
     notify: notice => integration.notify(notice)});
   globalThis.__vstabControlOptions = integration.options;
-  globalThis.addEventListener('pagehide', () => { transfers.dispose(); integration.dispose(); }, {once: true});
+  globalThis.addEventListener('pagehide', () => { callbacks?.dispose(); transfers.dispose(); integration.dispose(); }, {once: true});
   const baseValue = document.getElementById('vscode-workbench-web-base-url')?.getAttribute('data-settings');
   if (!baseValue) throw new Error('The bundled Code OSS base URL is missing.');
   const base = new URL(baseValue.replace(/\/$/, '') + '/', location.href);

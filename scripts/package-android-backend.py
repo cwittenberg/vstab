@@ -22,6 +22,16 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.parse_args()
     if sha(ARCHIVE)!=EXPECTED:raise RuntimeError('untrusted code-server archive')
+    ssh_lock=ROOT/'release/android-openssh.lock.json'
+    if not ssh_lock.is_file():raise RuntimeError('Build the upstream Android OpenSSH clients before packaging the backend')
+    openssh=json.loads(ssh_lock.read_text())
+    if openssh.get('recipeSha256')!=sha(ROOT/'scripts/build-android-openssh.py'):
+        raise RuntimeError('Rebuild Android OpenSSH after its build recipe changes')
+    for abi,files in openssh['outputs'].items():
+        for name,record in files.items():
+            binary=OUT/'jniLibs'/abi/name
+            if not binary.is_file() or sha(binary)!=record['sha256']:
+                raise RuntimeError('Rebuild upstream Android OpenSSH; a client differs from its verified source build')
     backend=OUT/'backend'
     if backend.exists():shutil.rmtree(backend)
     backend.mkdir(parents=True)
@@ -38,9 +48,12 @@ def main():
                     str(ROOT/'release/android-server-patches.json')],check=True)
     subprocess.run(['python3',str(ROOT/'native-runtime/patch-addon-loaders.py'),str(backend),
                     '--manifest-out',str(ROOT/'release/android-addon-loader-patches.json')],check=True)
+    git_auth=runpy.run_path(str(ROOT/'native-runtime/patch-git-auth.py'))['patch'](
+        backend/'lib/vscode/extensions/git/dist/main.js')
     spdlog=backend/'lib/vscode/node_modules/@vscode/spdlog/index.js'
     shutil.copyfile(ROOT/'native-runtime/vendor/spdlog.js',spdlog)
     shutil.copyfile(ROOT/'native-runtime/runtime-probe.cjs',backend/'vstab-runtime-probe.cjs')
+    shutil.copyfile(ROOT/'native-runtime/codex-extension-runtime.cjs',backend/'vstab-codex-extension-runtime.cjs')
     shutil.copyfile(ROOT/'native-runtime/vendor/VSCodroid-LICENSE.txt',backend/'VSCodroid-LICENSE.txt')
     removed=[]
     # Native machine code lives solely in APK nativeLibraryDir. Incompatible
@@ -75,6 +88,8 @@ def main():
         'vscodroidSourceCommit':'843708384856a8686355ddb75a63e43cce62b2a0',
         'removedForeignBinaries':removed,
         'firstPartyExtensions':first_party,
+        'gitAskpassPatch':git_auth,
+        'opensshSource':openssh,
         'spdlogImplementation':'native-runtime/vendor/spdlog.js (VSCodroid MIT)'}
     notice.write_text(json.dumps(provenance,indent=2)+'\n')
     destination=OUT/'assets/local-runtime/backend.zip'
@@ -91,10 +106,14 @@ def main():
         'nodeExecutable':'libnode.so','bashExecutable':'libbash.so',
         'backendAsset':'local-runtime/backend.zip','backendSha256':sha(destination),
         'backendEntry':'out/node/entry.js',
+        'nodeArguments':['--require','{backend}/vstab-codex-extension-runtime.cjs'],
         'symlinks':{'node':'libnode.so','bash':'libbash.so','git':'libgit.so','rg':'librg.so',
-                    'npm':'libnpm.so','npx':'libnpx.so'},
-        'usrLinks':{'lib/git-core/git-remote-'+protocol:'libgit-remote-curl.so'
+                    'npm':'libnpm.so','npx':'libnpx.so','ssh':'libssh.so',
+                    'ssh-keygen':'libssh-keygen.so','ssh-agent':'libssh-agent.so',
+                    'ssh-add':'libssh-add.so','codex':'libcodex.so'},
+        'usrLinks':{**{'lib/git-core/git-remote-'+protocol:'libgit-remote-curl.so'
                     for protocol in ['http','https','ftp','ftps']},
+                    'lib/git-core/git-sh-i18n--envsubst':'libgit-envsubst.so'},
         'arguments':['{backend}/out/node/entry.js','--config','{config}',
             '--socket','{socket}','--socket-mode','0600','--user-data-dir','{state}',
             '--extensions-dir','{state}/extensions','--disable-telemetry',
@@ -105,6 +124,7 @@ def main():
                        'GIT_SSL_CAINFO':'{usr}/etc/tls/cert.pem',
                        'GIT_EXEC_PATH':'{usr}/lib/git-core',
                        'GIT_TEMPLATE_DIR':'{usr}/share/git-core/templates',
+                       'VSTAB_CODEX_EXECUTABLE':'{nativeLibDir}/libcodex.so',
                        'TERMINFO':'{usr}/share/terminfo',
                        'NODE_EXTRA_CA_CERTS':'{usr}/etc/tls/cert.pem'}})
     manifest['addonLinks']={

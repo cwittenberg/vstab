@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "version": "10.6p2",
+  "source": "https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.6p2.tar.gz",
+  "sha256": "9ae44872090cf2f06b3cf9ff147e7f16f309671340763ed2f99248398ae29d5b",
+  "ndkVersion": "28.2.13676358",
+  "outputs": {
+    "arm64-v8a": {
+      "libopenssh-client.so": {
+        "sha256": "e8219ff7b40e08545542904c4c78ea876402fc8d114a5b402f86faacd05daa62",
+        "bytes": 940120
+      },
+      "libopenssh-keygen.so": {
+        "sha256": "34e43ececbc40beb41efcef2f40f8ade6481aafb1593bca5b841d31133be0795",
+        "bytes": 552784
+      },
+      "libopenssh-agent.so": {
+        "sha256": "c512e834b64b6403304468b27d2733f105001d0046f62075577c8daf93a6b062",
+        "bytes": 427392
+      },
+      "libopenssh-add.so": {
+        "sha256": "cbf8ec67be62d2ff646a2b7a4138f7dd97ad587314a88c5568b52545ec9b9a45",
+        "bytes": 451872
+      }
+    },
+    "x86_64": {
+      "libopenssh-client.so": {
+        "sha256": "1301300332c17049cad3ea1018d81101703181df62d3751ef533577709c3de48",
+        "bytes": 1019104
+      },
+      "libopenssh-keygen.so": {
+        "sha256": "38d4387a65b7ee4a2f65d16137797a8e7ae2af8fac76e4f92622288e8cdd757a",
+        "bytes": 599520
+      },
+      "libopenssh-agent.so": {
+        "sha256": "dcf44cd59e10431aeaa280cd84c780c808d929e8b299cc475d0c28484071a563",
+        "bytes": 468424
+      },
+      "libopenssh-add.so": {
+        "sha256": "08692d5a542cdc9e3a84a4414db298ee303eaafc7d3bec9ae5d2057407b2160d",
+        "bytes": 491976
+      }
+    }
+  },
+  "recipeSha256": "0053d73e27803e401b1bde86dc771f59f9a01ecd2428bc1a529a235c8227f70b",
+  "home": "SSH-only getpwuid/getpwnam shim; no compiled app/user path"
+}

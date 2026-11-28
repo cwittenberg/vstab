@@ -20,10 +20,11 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / '.local/android-runtime'
 REPO = 'https://packages-cf.termux.dev/apt/termux-main'
 ARCHES = {'arm64-v8a': 'aarch64', 'x86_64': 'x86_64'}
-PACKAGES = ['nodejs-lts', 'npm', 'bash', 'git', 'ripgrep', 'readline', 'ncurses',
+PACKAGES = ['nodejs-lts', 'npm', 'bash', 'git', 'ripgrep', 'openssh', 'codex', 'readline', 'ncurses',
     'libiconv', 'libandroid-support', 'libcurl', 'openssl', 'zlib', 'pcre2',
     'libexpat', 'libnghttp2', 'libnghttp3', 'libngtcp2', 'libssh2',
-    'c-ares', 'libicu', 'libc++', 'libsqlite', 'ca-certificates', 'termux-licenses']
+    'c-ares', 'libicu', 'libc++', 'libsqlite', 'ca-certificates', 'termux-licenses',
+    'ldns', 'krb5', 'libdb', 'libandroid-glob', 'libresolv-wrapper']
 
 def digest(path):
     with path.open('rb') as stream:
@@ -101,20 +102,28 @@ def prepare_abi(abi, info):
     jni = OUT / 'jniLibs' / abi
     jni.mkdir(parents=True, exist_ok=True)
     executables = {'node': 'libnode.so', 'bash': 'libbash.so',
-                   'git': 'libgit.so', 'rg': 'librg.so'}
+                   'git': 'libgit.so', 'rg': 'librg.so',
+                   'ssh': 'libopenssh-client.so', 'ssh-keygen': 'libopenssh-keygen.so',
+                   'ssh-agent': 'libopenssh-agent.so', 'ssh-add': 'libopenssh-add.so',
+                   'codex': 'libcodex.so', 'codex-code-mode-host': 'libcodex-modehost.so'}
     records = {}
     for name, filename in executables.items():
         source = prefix / 'bin' / name
         copy_file(source, jni / filename)
         (jni / filename).chmod(0o755)
         records[name] = filename
+    subprocess.run(['python3', str(ROOT / 'native-runtime/patch-codex-paths.py'),
+                    str(jni / 'libcodex.so')], check=True)
     helper = prefix / 'libexec/git-core/git-remote-http'
     if helper.exists():
         copy_file(helper, jni / 'libgit-remote-curl.so')
         (jni / 'libgit-remote-curl.so').chmod(0o755)
+    helper = prefix / 'libexec/git-core/git-sh-i18n--envsubst'
+    copy_file(helper, jni / 'libgit-envsubst.so')
+    (jni / 'libgit-envsubst.so').chmod(0o755)
     subprocess.run(['python3', str(ROOT / 'native-runtime/vendor/patch-default-shell.py'),
                     str(jni / 'libnode.so'), str(jni / 'libgit.so'),
-                    str(jni / 'libgit-remote-curl.so')], check=True)
+                    str(jni / 'libgit-remote-curl.so'), str(jni / 'libopenssh-client.so')], check=True)
     # Dynamic libraries are data mapped by Android's linker, never execve targets.
     for source in (prefix / 'lib').glob('*.so*'):
         if source.is_file():
@@ -123,7 +132,7 @@ def prepare_abi(abi, info):
             # Ship each library once under its actual loader name, avoiding
             # triplicate ICU data under the .so/.so.79/.so.79.1 aliases.
             copy_file(source, usr / 'lib' / (match[1] if match else source.name))
-    for name in ['terminfo', 'git-core', 'licenses', 'doc/nodejs-lts']:
+    for name in ['terminfo', 'git-core', 'licenses', 'doc/nodejs-lts', 'doc/openssh', 'doc/codex']:
         source = prefix / 'share' / name
         if source.exists():
             shutil.copytree(source, usr / 'share' / name, dirs_exist_ok=True, symlinks=False)
@@ -134,6 +143,13 @@ def prepare_abi(abi, info):
     ssl = prefix / 'etc/tls'
     if ssl.exists():
         shutil.copytree(ssl, usr / 'etc/tls', dirs_exist_ok=True, symlinks=False)
+    # Git's shell helpers are read as data by the APK-native helper launcher.
+    # Keep sourced .sh libraries as ordinary data; executable scripts receive
+    # launcher links when the runtime is prepared on Android.
+    git_helpers = prefix / 'libexec/git-core'
+    for source in sorted(git_helpers.iterdir()):
+        if source.is_file() and source.read_bytes()[:4] != b'\x7fELF':
+            copy_file(source, usr / 'lib/git-core' / source.name)
     return {'executables': records, 'nodeVersion': next(p['Version'] for p in info['packages']
             if p['Package'] == 'nodejs-lts'), 'nativeFiles':
             {p.name: {'sha256': digest(p), 'bytes': p.stat().st_size} for p in sorted(jni.iterdir())}}

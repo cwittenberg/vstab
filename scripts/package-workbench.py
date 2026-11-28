@@ -149,6 +149,7 @@ def main():
             shutil.copyfile(root / 'workbench/controls/native-startup.mjs', stage / 'controls/native-startup.mjs')
             shutil.copyfile(root / 'workbench/controls/file-transfers.mjs', stage / 'controls/file-transfers.mjs')
             shutil.copyfile(root / 'workbench/controls/port-forwarding.mjs', stage / 'controls/port-forwarding.mjs')
+            shutil.copyfile(root / 'workbench/controls/auth-callbacks.mjs', stage / 'controls/auth-callbacks.mjs')
         licenses = stage / 'static/notices'
         licenses.mkdir(parents=True, exist_ok=True)
         for license_path in (root / 'workbench/licenses').iterdir():

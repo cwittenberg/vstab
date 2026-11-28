@@ -494,15 +494,25 @@ final class ConnectionController {
         private final Profile profile;
         private final int operation;
         private final SharedPreferences trust = context.getSharedPreferences("ssh-host-trust", Context.MODE_PRIVATE);
+        private final SshKnownHosts known = new SshKnownHosts(new java.io.File(context.getFilesDir(), "home"));
         CheckedHosts(Profile profile, int operation) { this.profile = profile; this.operation = operation; }
         private String id() { return profile.host.toLowerCase(java.util.Locale.ROOT) + ":" + profile.port; }
 
         @Override public int check(String host, byte[] key) {
+            try {
+                int current = known.check(profile.host, profile.port, key);
+                if (current == OK) { phase(operation, "authenticating", "Authenticating the SSH account…"); return OK; }
+                if (current == CHANGED) return CHANGED;
+            } catch (java.io.IOException error) { return CHANGED; }
             String encoded = Base64.encodeToString(key, Base64.NO_WRAP);
             String existing = trust.getString(id(), null);
             if (existing != null) {
                 boolean unchanged = MessageDigest.isEqual(existing.getBytes(StandardCharsets.US_ASCII), encoded.getBytes(StandardCharsets.US_ASCII));
-                if (unchanged) phase(operation, "authenticating", "Authenticating the SSH account…");
+                if (unchanged) {
+                    try { known.remember(profile.host, profile.port, key); }
+                    catch (java.io.IOException error) { return NOT_INCLUDED; }
+                    phase(operation, "authenticating", "Authenticating the SSH account…");
+                }
                 return unchanged ? OK : CHANGED;
             }
             phase(operation, "verifying-host", "Verify this SSH host's fingerprint to continue.");
@@ -520,6 +530,7 @@ final class ConnectionController {
                 if (!answered.await(2, TimeUnit.MINUTES) || !accepted.get() || operation != generation.get()) return NOT_INCLUDED;
                 // Commit before reporting success so a process death never forgets a consent.
                 if (!trust.edit().putString(id(), encoded).commit()) return NOT_INCLUDED;
+                known.remember(profile.host, profile.port, key);
                 phase(operation, "authenticating", "Authenticating the SSH account…");
                 return OK;
             } catch (Exception error) { return NOT_INCLUDED; }
@@ -528,7 +539,7 @@ final class ConnectionController {
         @Override public void remove(String host, String type) { }
         @Override public void remove(String host, String type, byte[] key) { }
         @Override public String getKnownHostsRepositoryID() { return "vstab private host trust"; }
-        @Override public HostKey[] getHostKey() { return new HostKey[0]; }
-        @Override public HostKey[] getHostKey(String host, String type) { return new HostKey[0]; }
+        @Override public HostKey[] getHostKey() { return known.entries(null, null); }
+        @Override public HostKey[] getHostKey(String host, String type) { return known.entries(host, type); }
     }
 }
