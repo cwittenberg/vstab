@@ -47,7 +47,8 @@ class CDP {
     });
     const client = new CDP(socket);
     client.target = target;
-    await client.send('Runtime.enable');
+    try { await client.send('Runtime.enable'); }
+    catch (error) { client.close(); throw error; }
     return client;
   }
   send(method, params={}) {

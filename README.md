@@ -4,16 +4,6 @@
 
 VS Code for tablets.
 
-![Local coding with a terminal](screenshots/07-light-local-editor-and-terminal.png)
-
-![SSH and local projects in split screen](screenshots/03-independent-split-screen-workspaces.png)
-
-![Remote port forwarding with a browser preview](screenshots/remote-port-forwarding.png)
-
-![OpenAI Codex running in an SSH workspace](screenshots/11-codex-running.png)
-
-[More screenshots](screenshots/README.md)
-
 ## Features
 
 | Feature | Support |
@@ -32,5 +22,15 @@ VS Code for tablets.
 | Codex and Claude Code | Install from Extensions in a local Android or SSH workspace |
 | Remote Explorer jump hosts and keyboard-interactive/MFA | Not supported |
 | Local processes after force-stop or reboot | Not preserved |
+
+![Local coding with a terminal](screenshots/07-light-local-editor-and-terminal.png)
+
+![SSH and local projects in split screen](screenshots/03-independent-split-screen-workspaces.png)
+
+![Remote port forwarding with a browser preview](screenshots/remote-port-forwarding.png)
+
+![OpenAI Codex running in an SSH workspace](screenshots/11-codex-running.png)
+
+[More screenshots](screenshots/README.md)
 
 [Get started](android/README.md)
