@@ -15,3 +15,9 @@ Android emulator screenshots.
 | [09 — Editor and terminal, light theme](09-light-code-left-terminal-right.png) | Code left, terminal right |
 | [10 — Remote port forwarding](remote-port-forwarding.png) | Remote web app beside its SSH workspace, opened in the Android browser |
 | [11 — Codex via SSH](11-codex-running.png) | OpenAI Codex running in an SSH workspace |
+
+## Foreground service reviewer video
+
+[Download the two-minute MP4](foreground-service-special-use.mp4) (1920×1200, 2.8 MB). Recorded from the signed Android release 0.1.3 (version code 4): start the local runtime, run a Node.js project, preview live server responses in Chrome while VStab is in the background, return through the ongoing notification, and use its Stop action.
+
+The silent video includes explanatory captions below the captured interface. Setup pauses are shortened; the final stopped screen is held from a genuine capture in the same session. Stop ends the local editor backend and foreground service; detached terminal jobs have separate controls.

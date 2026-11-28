@@ -38,11 +38,70 @@ def download(spec, destination):
     temporary.replace(destination)
 
 
+def original_asset_records(archive_path, prefix):
+    """Hashes of files available through the unchanged backend's static routes."""
+    records = {}
+    vscode_prefix = prefix + 'lib/vscode/'
+    with tarfile.open(archive_path) as archive:
+        for member in archive:
+            if not member.isfile():
+                continue
+            key = backend_path = None
+            if member.name.startswith(vscode_prefix):
+                relative = member.name[len(vscode_prefix):]
+                if not relative.startswith(('out/', 'node_modules/', 'extensions/')):
+                    continue
+                key = 'static/' + relative
+                backend_path = relative
+            elif member.name.startswith(prefix + 'src/browser/media/'):
+                relative = member.name[len(prefix + 'src/browser/media/'):]
+                key = 'static/resources/code-server/' + relative
+                backend_path = '/_static/src/browser/media/' + relative
+            if key is None:
+                continue
+            if '..' in PurePosixPath(key).parts or PurePosixPath(key).is_absolute():
+                raise ValueError('Unsafe original backend asset path')
+            stream = archive.extractfile(member)
+            if stream is None:
+                raise ValueError('Cannot read original backend asset')
+            result = hashlib.sha256()
+            length = 0
+            for data in iter(lambda: stream.read(1024 * 1024), b''):
+                result.update(data)
+                length += len(data)
+            records[key] = {'sha256': result.hexdigest(), 'bytes': length,
+                            'backendPath': backend_path}
+    return records
+
+
+def shared_backend_assets(stage, files, amd64_records, arm64_records, static_prefix):
+    """Remove only exact, cross-architecture original copies from the APK stage."""
+    omitted = {}
+    for name, item in list(files.items()):
+        original = amd64_records.get(name)
+        arm = arm64_records.get(name)
+        if (original is None or arm is None or
+                any(original[field] != item[field] or arm[field] != item[field]
+                    for field in ['sha256', 'bytes'])):
+            continue
+        backend_path = original['backendPath']
+        if not backend_path.startswith('/'):
+            backend_path = static_prefix + backend_path
+        omitted[name] = {**item, 'backendPath': backend_path}
+        (stage / name).unlink()
+        del files[name]
+    return omitted
+
+
 def main():
     root = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive', type=Path, default=root / '.local/downloads/code-server-4.146.0-linux-amd64.tar.gz')
     parser.add_argument('--output', type=Path, default=root / '.local/workbench-assets')
+    parser.add_argument('--shared-linux-assets', action='store_true',
+                        help='Omit exact original frontend copies; Android verifies matching backend bytes')
+    parser.add_argument('--arm64-archive', type=Path,
+                        default=root / '.local/linux-runtime/guest/arm64-v8a/inputs/code-server-4.146.0-linux-arm64.tar.gz')
     args = parser.parse_args()
     spec = json.loads((root / 'workbench/bundle-spec.json').read_text())
     if not args.archive.exists():
@@ -50,6 +109,22 @@ def main():
         download(spec, args.archive)
     if digest(args.archive) != spec['artifactSha256']:
         raise SystemExit('The workbench archive did not match the pinned SHA-256.')
+
+    originals = comparisons = None
+    if args.shared_linux_assets:
+        lock = json.loads((root / 'release/server-lock.json').read_text())
+        if lock.get('codeServerVersion') != spec['codeServerVersion']:
+            raise SystemExit('Shared frontend assets require the exact pinned server release.')
+        amd64 = lock['assets']['linux-amd64']
+        arm64 = lock['assets']['linux-arm64']
+        if amd64['sha256'] != digest(args.archive):
+            raise SystemExit('Shared frontend assets require the pinned amd64 server archive.')
+        if not args.arm64_archive.is_file() or digest(args.arm64_archive) != arm64['sha256']:
+            raise SystemExit('Shared frontend assets require the verified pinned ARM64 server archive as well.')
+        originals = original_asset_records(args.archive,
+            f'code-server-{spec["codeServerVersion"]}-linux-amd64/')
+        comparisons = original_asset_records(args.arm64_archive,
+            f'code-server-{spec["codeServerVersion"]}-linux-arm64/')
 
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -132,7 +207,8 @@ def main():
             raise SystemExit('The bundled workbench identity does not match the pinned remote server.')
 
         # Keep the upstream startup order, but own the HTML entry point and its
-        # application metadata. All scripts/worker/media URLs resolve to APK assets.
+        # application metadata. Script/worker/media URLs stay under native-owned
+        # routes, including strictly pinned backend copies in the shared mode.
         template = template.replace('content="Code"', 'content="vstab"')
         template = template.replace('{{BASE}}/_static/src/browser/media/', '{{WORKBENCH_WEB_BASE_URL}}/resources/code-server/')
         template = template.replace('{{VS_BASE}}/manifest.json', '{{WORKBENCH_WEB_BASE_URL}}/resources/vstab/manifest.json')
@@ -227,6 +303,7 @@ def main():
         for path in sorted((stage / 'static').rglob('*')):
             if path.is_file():
                 files[path.relative_to(stage).as_posix()] = {'sha256': digest(path), 'bytes': path.stat().st_size}
+        shared_files = shared_backend_assets(stage, files, originals, comparisons, static_prefix) if args.shared_linux_assets else {}
         controls_files = {}
         if (stage / 'controls').is_dir():
             for path in sorted((stage / 'controls').rglob('*')):
@@ -255,6 +332,14 @@ def main():
             'controlsRuntimeFiles': controls_files,
             'userDataPathRule': 'ready.home + /.local/share/vstab/user-data',
             'files': files,
+            'sharedBackendAssets': shared_files,
+            'sharedBackendAssetCount': len(shared_files),
+            'sharedBackendAssetBytes': sum(item['bytes'] for item in shared_files.values()),
+            'sharedBackendVerification': ({
+                'mode': 'exact original bytes on both pinned Linux architectures',
+                'linuxAmd64ArchiveSha256': digest(args.archive),
+                'linuxArm64ArchiveSha256': digest(args.arm64_archive),
+            } if args.shared_linux_assets else None),
             'fileCount': len(files),
             'uncompressedBytes': sum(item['bytes'] for item in files.values()),
         }
@@ -273,7 +358,7 @@ def main():
                 raise SystemExit('Refusing to replace an unrecognized workbench output directory.')
             shutil.rmtree(destination)
         shutil.move(str(stage), str(destination))
-    print(json.dumps({'assets': str(destination), 'staticPrefix': static_prefix, 'fileCount': manifest['fileCount'], 'uncompressedBytes': manifest['uncompressedBytes'], 'upstreamCommit': spec['upstreamCommit'], 'serverProductCommit': spec['serverProductCommit']}))
+    print(json.dumps({'assets': str(destination), 'staticPrefix': static_prefix, 'fileCount': manifest['fileCount'], 'uncompressedBytes': manifest['uncompressedBytes'], 'sharedBackendAssetCount': manifest['sharedBackendAssetCount'], 'sharedBackendAssetBytes': manifest['sharedBackendAssetBytes'], 'upstreamCommit': spec['upstreamCommit'], 'serverProductCommit': spec['serverProductCommit']}))
 
 
 if __name__ == '__main__':

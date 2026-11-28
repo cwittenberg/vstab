@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Owns the browser origin while the native Node backend uses a private socket. */
+/** Owns the authenticated browser origin independently of the backend transport. */
 final class LocalEditorGateway implements Closeable {
     static final String COOKIE = "vstab-native-gateway";
     private static final int MAX_CONNECTIONS = 24;
@@ -35,6 +35,7 @@ final class LocalEditorGateway implements Closeable {
     });
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile String backend;
+    private volatile int backendTcpPort;
 
     LocalEditorGateway(int preferredPort, String secret) throws IOException {
         this.secret = secret;
@@ -52,8 +53,12 @@ final class LocalEditorGateway implements Closeable {
     }
 
     int port() { return listener.getLocalPort(); }
-    void selectBackend(String socketPath) { backend = socketPath; }
-    void withdrawBackend() { backend = null; for (Relay relay : active) relay.close(); }
+    synchronized void selectBackend(String socketPath) { backendTcpPort = 0; backend = socketPath; }
+    synchronized void selectLoopbackBackend(int port) {
+        if (port < 1 || port > 65535) throw new IllegalArgumentException("Invalid backend port.");
+        backend = null; backendTcpPort = port;
+    }
+    void withdrawBackend() { backend = null; backendTcpPort = 0; for (Relay relay : active) relay.close(); }
     String cookie() { return COOKIE + "=" + secret + "; Path=/; HttpOnly; SameSite=Strict"; }
     String requestCookie() { return COOKIE + "=" + secret; }
 
@@ -74,6 +79,7 @@ final class LocalEditorGateway implements Closeable {
         private final Socket client;
         private final AtomicBoolean ended = new AtomicBoolean();
         private LocalSocket target;
+        private Socket tcpTarget;
         Relay(Socket client) { this.client = client; }
 
         void run() {
@@ -83,19 +89,30 @@ final class LocalEditorGateway implements Closeable {
                 byte[] header = readHeader(client.getInputStream());
                 if (!authenticated(header)) { reject(client, 403, "Forbidden"); return; }
                 String destination = backend;
-                if (destination == null) { reject(client, 503, "Service Unavailable"); return; }
-                target = new LocalSocket();
-                target.connect(new LocalSocketAddress(destination, LocalSocketAddress.Namespace.FILESYSTEM));
-                target.setSoTimeout(120000);
+                int tcpPort = backendTcpPort;
+                if (destination == null && tcpPort == 0) { reject(client, 503, "Service Unavailable"); return; }
+                final InputStream response;
+                final OutputStream request;
+                if (tcpPort != 0) {
+                    tcpTarget = new Socket();
+                    tcpTarget.connect(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), tcpPort), 10000);
+                    tcpTarget.setTcpNoDelay(true); tcpTarget.setSoTimeout(120000);
+                    response = tcpTarget.getInputStream(); request = tcpTarget.getOutputStream();
+                } else {
+                    target = new LocalSocket();
+                    target.connect(new LocalSocketAddress(destination, LocalSocketAddress.Namespace.FILESYSTEM));
+                    target.setSoTimeout(120000);
+                    response = target.getInputStream(); request = target.getOutputStream();
+                }
                 client.setSoTimeout(120000);
-                target.getOutputStream().write(header);
-                target.getOutputStream().flush();
+                request.write(header);
+                request.flush();
                 workers.execute(() -> {
-                    try { pump(target.getInputStream(), client.getOutputStream()); }
+                    try { pump(response, client.getOutputStream()); }
                     catch (IOException ignored) { }
                     finally { close(); }
                 });
-                pump(client.getInputStream(), target.getOutputStream());
+                pump(client.getInputStream(), request);
             } catch (IOException error) {
                 if (!ended.get()) reject(client, 503, "Service Unavailable");
             } finally { close(); }
@@ -105,6 +122,7 @@ final class LocalEditorGateway implements Closeable {
             if (!ended.compareAndSet(false, true)) return;
             try { client.close(); } catch (IOException ignored) { }
             if (target != null) try { target.close(); } catch (IOException ignored) { }
+            if (tcpTarget != null) try { tcpTarget.close(); } catch (IOException ignored) { }
             active.remove(this); slots.release();
         }
     }
@@ -153,6 +171,7 @@ final class LocalEditorGateway implements Closeable {
     @Override public void close() {
         if (!closed.compareAndSet(false, true)) return;
         backend = null;
+        backendTcpPort = 0;
         try { listener.close(); } catch (IOException ignored) { }
         for (Relay relay : active) relay.close();
         workers.shutdownNow();

@@ -166,9 +166,9 @@ export function createNativeControlIntegration({
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   let transfers;
   const integration = createNativeControlIntegration({pasteFromAndroid: () => transfers.pasteFromAndroid({force: true})});
-  const forwarding = createPortForwarding({request: (method, params) => integration.request(method, params),
-    local: location.hostname === 'localhost', workbenchAuthority: location.host});
   const configuration = JSON.parse(document.getElementById('vscode-workbench-web-configuration')?.getAttribute('data-settings') || '{}');
+  const forwarding = createPortForwarding({request: (method, params) => integration.request(method, params),
+    local: configuration.vstabDirectLoopback === true, workbenchAuthority: location.host});
   const callbackUrl = configuration.vstabAuthCallbackUrl;
   const callbackAddress = new URL(callbackUrl);
   let callbacks;
@@ -176,7 +176,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     resolveExternalUri: uri => uri.scheme === 'http' && uri.authority === callbackAddress.host && uri.path === callbackAddress.pathname
       ? Promise.resolve(uri) : forwarding.resolveExternalUri(uri),
     urlCallbackProvider: uri => callbacks = createAuthCallbackProvider({callbackUrl, uri})});
-  integration.onEvent(message => { if (message.event === 'stateChanged') forwarding.updateState(message.state); });
+  integration.onEvent(message => { if (message.event === 'stateChanged') forwarding.updateState(
+    message.state?.developmentConnection ? {connection: message.state.developmentConnection} : message.state); });
   transfers = installFileTransfers({hostWindow: window, request: (method, params) => integration.request(method, params),
     notify: notice => integration.notify(notice)});
   globalThis.__vstabControlOptions = integration.options;

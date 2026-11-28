@@ -47,11 +47,14 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     private static final int PICK_HOST_KEY = 54;
     private static final int PICK_SHARED_FOLDER = 55;
     private static final int PICK_DOCUMENT = 56;
+    private static final int TERMUX_PERMISSION = 57;
+    private static final int NOTIFICATION_PERMISSION = 58;
     private String windowId;
     private String localFolderPath;
     private String openedDocumentPath;
     private boolean openingDocument;
     private boolean firstConnectRequested;
+    private boolean termuxSetupPending;
     private Consumer<JSONObject> approvedDocumentSuccess;
     private Consumer<NativeSshBridge.Failure> approvedDocumentFailure;
     private SharedDocumentManager documents;
@@ -184,7 +187,9 @@ public class MainActivity extends Activity implements ConnectionController.Obser
             sshProfileId = current.savedHostId; sshConnectionId = java.util.UUID.randomUUID().toString();
         }
         if (openingDocument) openExternalDocument(getIntent());
-        else if (current != null) openWorkbench(current); else openLocalWorkspace();
+        else if (current != null) openWorkbench(current);
+        else if (firstConnectRequested) { firstConnectRequested = false; showConnect(); }
+        else openLocalWorkspace();
         if (sharedSessionId != null) documents.restore(sharedSessionId, documentListener(null, null, false));
     }
 
@@ -532,8 +537,27 @@ public class MainActivity extends Activity implements ConnectionController.Obser
         if (!"https".equalsIgnoreCase(target.getScheme()) && !"http".equalsIgnoreCase(target.getScheme())) {
             Toast.makeText(this, "This external link type is not supported.", Toast.LENGTH_LONG).show(); return;
         }
-        try { startActivity(new Intent(Intent.ACTION_VIEW, target).addCategory(Intent.CATEGORY_BROWSABLE)); }
-        catch (ActivityNotFoundException error) { Toast.makeText(this, "Install a browser to open this sign-in link.", Toast.LENGTH_LONG).show(); }
+        Runnable open = () -> {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, target).addCategory(Intent.CATEGORY_BROWSABLE)); }
+            catch (ActivityNotFoundException error) { Toast.makeText(this, "Install a browser to open this sign-in link.", Toast.LENGTH_LONG).show(); }
+        };
+        boolean nativeCallback = isNativeCallback(target);
+        String redirect = target.getQueryParameter("redirect_uri");
+        if (redirect != null) nativeCallback |= isNativeCallback(Uri.parse(redirect));
+        if (active != null && active.localRuntime && !nativeCallback) {
+            ConnectionController.Ready requestedBy = active;
+            runtime.prepareExternalBrowser(target.toString(), () -> {
+                if (!isFinishing() && !isDestroyed() && active == requestedBy) open.run();
+            }, message -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
+        } else open.run();
+    }
+
+    private boolean isNativeCallback(Uri target) {
+        AuthCallbackServer callback = authCallbacks.get(web);
+        if (callback == null) return false;
+        Uri expected = Uri.parse(callback.url());
+        return expected.getScheme().equals(target.getScheme()) && expected.getAuthority().equals(target.getAuthority())
+                && expected.getPath().equals(target.getPath());
     }
 
     private void handleAppAction(Uri target) {
@@ -556,28 +580,155 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     }
 
     private void openLocalWorkspace() {
+        if (!runtime.isConfigured()) {
+            if (TermuxRuntimeHost.hasTermux(this)) { showEnvironmentChoice(); return; }
+            runtime.selectProvider(LinuxEnvironmentStore.BUNDLED);
+        }
+        android.content.SharedPreferences notifications = getSharedPreferences("local-runtime-notifications", MODE_PRIVATE);
+        if (android.os.Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                && !notifications.getBoolean("requested", false)) {
+            notifications.edit().putBoolean("requested", true).apply();
+            showRuntimeState("Opening your workspace…", false);
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION);
+            return;
+        }
         ConnectionController.Ready ready = runtime.current();
         if (ready != null) { openWorkbench(ready); return; }
-        showRuntimeState("Starting the on-device development environment…", false);
+        showRuntimeState("Opening your workspace…", false);
         try { startForegroundService(new Intent(this, LocalRuntimeService.class)); }
         catch (RuntimeException error) { onLocalRuntimeFailure("Android could not start the local runtime service. Reopen vstab and retry."); }
     }
 
+    private void showEnvironmentChoice() {
+        if (!TermuxRuntimeHost.hasTermux(this)) {
+            runtime.selectProvider(LinuxEnvironmentStore.BUNDLED); formOpen = false; openLocalWorkspace(); return;
+        }
+        active = null; localMode = true; formOpen = true; runtimeStatus = null;
+        root.removeAllViews();
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL); body.setGravity(Gravity.START);
+        body.setPadding(dp(24), dp(24), dp(24), dp(24));
+        TextView title = text("Local projects", 24, Color.WHITE);
+        title.setTypeface(null, Typeface.BOLD);
+        body.addView(title, width(-1));
+        TextView explanation = text("Termux is installed. Choose where to run your local projects.", 16, Color.LTGRAY);
+        body.addView(explanation, spaced(12));
+        android.widget.RadioGroup choices = new android.widget.RadioGroup(this);
+        choices.setOrientation(LinearLayout.VERTICAL);
+        android.content.res.ColorStateList radioColors = new android.content.res.ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
+                new int[]{Color.rgb(62, 166, 255), Color.rgb(184, 184, 184)});
+        android.widget.RadioButton builtIn = new android.widget.RadioButton(this);
+        builtIn.setId(View.generateViewId()); builtIn.setText("Built-in Linux (default)");
+        builtIn.setTextColor(Color.WHITE); builtIn.setTextSize(16); builtIn.setMinHeight(dp(52));
+        builtIn.setButtonTintList(radioColors);
+        choices.addView(builtIn, width(-1));
+        android.widget.RadioButton termux = new android.widget.RadioButton(this);
+        termux.setId(View.generateViewId()); termux.setText("Termux");
+        termux.setTextColor(Color.WHITE); termux.setTextSize(16); termux.setMinHeight(dp(52));
+        termux.setButtonTintList(radioColors);
+        choices.addView(termux, width(-1)); choices.check(builtIn.getId());
+        body.addView(choices, spaced(20));
+        Button proceed = button("Continue", true);
+        proceed.setOnClickListener(view -> {
+            if (choices.getCheckedRadioButtonId() == termux.getId()) { setupTermux(); return; }
+            try { runtime.selectProvider(LinuxEnvironmentStore.BUNDLED); formOpen = false; openLocalWorkspace(); }
+            catch (Exception error) { Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show(); }
+        }); body.addView(proceed, spaced(24));
+        FrameLayout center = new FrameLayout(this);
+        int panelWidth = Math.min(dp(560), getResources().getDisplayMetrics().widthPixels - dp(32));
+        center.addView(body, new FrameLayout.LayoutParams(panelWidth, -2, Gravity.CENTER));
+        ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.addView(center);
+        root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+    }
+
+    private void setupTermux() {
+        if (!TermuxRuntimeHost.permissionGranted(this)) {
+            termuxSetupPending = true;
+            requestPermissions(new String[]{"com.termux.permission.RUN_COMMAND"}, TERMUX_PERMISSION); return;
+        }
+        new AlertDialog.Builder(this).setTitle("Use Termux for Linux")
+                .setMessage("Open Termux once to initialize it. Allow external commands by adding allow-external-apps = true to ~/.termux/termux.properties, then return here. VStab will show any required package downloads before installation.")
+                .setNegativeButton("Cancel", null)
+                .setNeutralButton("Open Termux", (dialog, which) -> {
+                    Intent termux = getPackageManager().getLaunchIntentForPackage(TermuxRuntimeHost.PACKAGE);
+                    if (termux != null) startActivity(termux);
+                })
+                .setPositiveButton("Check setup", (dialog, which) -> checkTermuxSetup(android.os.Build.SUPPORTED_ABIS[0])).show();
+    }
+    private void checkTermuxSetup(String abi) {
+        TermuxRuntimeHost.preflight(this, abi, result -> runOnUiThread(() -> showTermuxSetupResult(abi, result)));
+    }
+    private void showTermuxSetupResult(String abi, TermuxRuntimeHost.Result result) {
+        if (isFinishing() || isDestroyed() || !formOpen) return;
+        if ("available".equals(result.status) || "installed".equals(result.status)) { startTermuxEnvironment(); return; }
+        if (result.needsPackage() && !result.transactionSha256.isEmpty()) {
+            TextView summary = text(result.message + "\n\n" + result.details, 14, INK);
+            summary.setPadding(dp(24), dp(12), dp(24), dp(12)); summary.setTextIsSelectable(true);
+            ScrollView scroll = new ScrollView(this); scroll.addView(summary);
+            new AlertDialog.Builder(this).setTitle("Termux package setup").setView(scroll)
+                    .setNegativeButton("Cancel", null).setPositiveButton("Install listed packages", (confirmation, choice) -> {
+                        Toast.makeText(this, "Installing the approved Termux packages…", Toast.LENGTH_LONG).show();
+                        TermuxRuntimeHost.installPackages(this, abi, result.transactionSha256,
+                                installed -> runOnUiThread(() -> showTermuxSetupResult(abi, installed)));
+                    }).show();
+            return;
+        }
+        AlertDialog.Builder message = new AlertDialog.Builder(this).setTitle("Termux setup")
+                .setMessage(result.message + "\n\n" + result.details).setNegativeButton("Cancel", null);
+        if (result.needsPackage()) message.setPositiveButton("Refresh package lists", (dialog, which) -> {
+            Toast.makeText(this, "Refreshing Termux package lists…", Toast.LENGTH_LONG).show();
+            TermuxRuntimeHost.refreshPackages(this, abi, refreshed -> runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed() || !formOpen) return;
+                if ("refreshed".equals(refreshed.status)) checkTermuxSetup(abi);
+                else showTermuxSetupResult(abi, refreshed);
+            }));
+        });
+        else message.setPositiveButton("OK", null);
+        message.show();
+    }
+    private void startTermuxEnvironment() {
+        try { runtime.selectProvider(LinuxEnvironmentStore.TERMUX); formOpen = false; openLocalWorkspace(); }
+        catch (Exception error) { Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show(); }
+    }
+    @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(request, permissions, results);
+        if (request == NOTIFICATION_PERMISSION) { openLocalWorkspace(); return; }
+        if (request == TERMUX_PERMISSION && termuxSetupPending) {
+            termuxSetupPending = false;
+            if (TermuxRuntimeHost.permissionGranted(this)) setupTermux();
+            else new AlertDialog.Builder(this).setTitle("Termux permission needed")
+                    .setMessage("Allow VStab to run commands in Termux, or choose built-in Linux.").setPositiveButton("OK", null).show();
+        }
+    }
+
     private java.io.File checkedLocalFolder(String path) throws java.io.IOException {
+        if (!path.startsWith("/") || path.indexOf('\0') >= 0 || java.util.Arrays.asList(path.split("/")).contains(".."))
+            throw new java.io.IOException("Choose an absolute folder path inside the Linux environment.");
         java.io.File base = getFilesDir().getCanonicalFile();
         java.io.File candidate = new java.io.File(path).getCanonicalFile();
-        if (!candidate.getPath().startsWith(base.getPath() + java.io.File.separator))
-            throw new java.io.IOException("Choose an app project or use Open Shared Folder for Android storage.");
+        if (!candidate.equals(base) && !candidate.getPath().startsWith(base.getPath() + java.io.File.separator))
+            return new java.io.File(path); // The Linux backend resolves guest paths and permissions.
+        boolean exported = false;
+        for (String name : new String[]{"workspaces", "shared-documents"}) {
+            java.io.File root = new java.io.File(base, name).getCanonicalFile();
+            if (candidate.equals(root) || candidate.getPath().startsWith(root.getPath() + java.io.File.separator)) exported = true;
+        }
+        if (!exported) throw new java.io.IOException("Choose an app project or use Open Shared Folder for Android storage.");
         if (!candidate.isDirectory() && !candidate.mkdirs()) throw new java.io.IOException("This project folder could not be opened.");
         return candidate;
     }
 
     private ConnectionController.Ready localReady(ConnectionController.Ready base, java.io.File directory) {
-        if (cachedLocalReady != null && cachedLocalReady.origin.equals(base.origin) && cachedLocalReady.folder.equals(directory.getAbsolutePath()))
+        String guestFolder = runtime.guestPath(directory.getAbsolutePath());
+        if (cachedLocalReady != null && cachedLocalReady.origin.equals(base.origin) && cachedLocalReady.folder.equals(guestFolder))
             return cachedLocalReady;
-        ConnectionController.Profile profile = new ConnectionController.Profile(base.host, base.sshPort, base.user, "", directory.getAbsolutePath(), null, "");
-        return new ConnectionController.Ready(base.origin, base.origin + "/?folder=" + Uri.encode(directory.getAbsolutePath()), profile,
-                base.version, base.serverVersion, base.home, directory.getAbsolutePath(), base.remotePort, base.cookies, true);
+        ConnectionController.Profile profile = new ConnectionController.Profile(base.host, base.sshPort, base.user, "", guestFolder, null, "", base.environmentId);
+        ConnectionController.Ready selected = new ConnectionController.Ready(base.origin, base.origin + "/?folder=" + Uri.encode(guestFolder), profile,
+                base.version, base.serverVersion, base.home, guestFolder, base.remotePort, base.cookies, true);
+        selected.environmentId = base.environmentId; selected.environmentProvider = base.environmentProvider; selected.directLoopback = base.directLoopback;
+        return selected;
     }
 
     private void showNewWindow() {
@@ -623,6 +774,9 @@ public class MainActivity extends Activity implements ConnectionController.Obser
             Button ssh = button("Connect to SSH host", false);
             ssh.setTextColor(Color.rgb(110, 180, 255)); ssh.setOnClickListener(view -> showConnect());
             loading.addView(ssh, spaced(8));
+            Button choose = button("Change development environment", false);
+            choose.setTextColor(Color.rgb(110, 180, 255));
+            choose.setOnClickListener(view -> { runtime.stop(); showEnvironmentChoice(); }); loading.addView(choose, spaced(8));
         }
         root.addView(loading, new FrameLayout.LayoutParams(-1, -1));
     }
@@ -772,7 +926,10 @@ public class MainActivity extends Activity implements ConnectionController.Obser
         JSONObject transport = new JSONObject().put("phase", sshPhase).put("profileId", sshProfileId)
                 .put("connectionId", sshConnectionId).put("message", sshMessage)
                 .put("folder", current == null ? "" : current.folder).put("home", current == null ? "" : current.home);
-        return new JSONObject().put("schema", 1).put("profiles", profiles).put("connection", transport).put("config", snapshot);
+        JSONObject state = new JSONObject().put("schema", 1).put("profiles", profiles).put("connection", transport).put("config", snapshot);
+        if (active != null && active.localRuntime) state.put("developmentConnection", new JSONObject()
+                .put("phase", runtime.current() == null ? "disconnected" : "connected").put("connectionId", active.environmentId));
+        return state;
     }
 
     private void publishSshState() {
@@ -801,10 +958,13 @@ public class MainActivity extends Activity implements ConnectionController.Obser
             if (method.equals("documents.getState")) { success.accept(documentState()); return; }
             if (method.startsWith("tunnels.")) {
                 ConnectionController.Ready current = connection.current();
-                if (source != web || formOpen || !source.isShown() || active == null || active.localRuntime
-                        || current == null || !active.origin.equals(current.origin)
-                        || !NativeSshBridge.matchesOrigin(source.getUrl(), current.origin)) {
-                    failure.accept(new NativeSshBridge.Failure("NoPermissions", "Use the active SSH workbench to forward ports.")); return;
+                if (source != web || formOpen || !source.isShown() || active == null
+                        || !NativeSshBridge.matchesOrigin(source.getUrl(), active.origin)) {
+                    failure.accept(new NativeSshBridge.Failure("NoPermissions", "Use the active development workbench to forward ports.")); return;
+                }
+                if (active.localRuntime) { runtime.tunnelRequest(method, params, success, failure); return; }
+                if (current == null || !active.origin.equals(current.origin)) {
+                    failure.accept(new NativeSshBridge.Failure("NoPermissions", "This workspace is disconnected.")); return;
                 }
                 connection.tunnelRequest(method, params, success, failure); return;
             }
@@ -930,6 +1090,7 @@ public class MainActivity extends Activity implements ConnectionController.Obser
             @Override public void onOpened(SharedDocumentManager.Session session) {
                 if (isFinishing() || isDestroyed()) return;
                 sharedSessionId = session.id; sharedFailure = "";
+                if (!session.singleDocument) runtime.exportAndroidFolder(session.id, session.source);
                 sharedMessage = "Shared " + (session.singleDocument ? "file" : "project") + ": " + session.name;
                 if (navigate) {
                     localFolderPath = session.directory.getAbsolutePath();
@@ -956,11 +1117,11 @@ public class MainActivity extends Activity implements ConnectionController.Obser
 
     private JSONObject documentState() throws Exception {
         JSONObject result = new JSONObject().put("message", sharedMessage).put("error", sharedFailure)
-                .put("local", localMode).put("openedFile", openedDocumentPath == null ? JSONObject.NULL : new java.io.File(openedDocumentPath).getCanonicalPath());
+                .put("local", localMode).put("openedFile", openedDocumentPath == null ? JSONObject.NULL : runtime.guestPath(new java.io.File(openedDocumentPath).getCanonicalPath()));
         SharedDocumentManager.Session session = sharedSessionId == null ? null : documents.session(sharedSessionId);
         if (session == null) return result;
-        result.put("sessionId", session.id).put("folderPath", session.directory.getCanonicalPath())
-                .put("filePath", session.documentFile == null ? JSONObject.NULL : session.documentFile.getCanonicalPath()).put("name", session.name);
+        result.put("sessionId", session.id).put("folderPath", runtime.guestPath(session.directory.getCanonicalPath()))
+                .put("filePath", session.documentFile == null ? JSONObject.NULL : runtime.guestPath(session.documentFile.getCanonicalPath())).put("name", session.name);
         JSONArray conflicts = new JSONArray();
         for (DocumentSyncEngine.Conflict conflict : session.conflicts()) conflicts.put(new JSONObject()
                 .put("path", conflict.path).put("recoveryPath", conflict.recoveryPath));
@@ -1200,6 +1361,12 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     @Override public void onLocalRuntimeStatus(String message) {
         if (active == null && !formOpen && runtimeStatus != null) runtimeStatus.setText(message);
     }
+    @Override public void onLocalBrowserRequest(String url) {
+        if (!isFinishing() && !isDestroyed() && hasWindowFocus() && active != null && active.localRuntime) {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
+            catch (ActivityNotFoundException unavailable) { Toast.makeText(this, "Install a browser to open this address.", Toast.LENGTH_LONG).show(); }
+        }
+    }
     @Override public void onLocalRuntimeReady(ConnectionController.Ready ready) {
         if (!openingDocument && !formOpen && (active == null || active.localRuntime)) {
             openWorkbench(ready);
@@ -1221,7 +1388,15 @@ public class MainActivity extends Activity implements ConnectionController.Obser
     private void handleBack() {
         if (formOpen) {
             if (connection.isBusy()) disconnectToLocal(); else openWorkbench(null);
-        } else if (active != null && !active.localRuntime) confirmDisconnect(); else finish();
+        } else if (active != null && !active.localRuntime) confirmDisconnect();
+        else if (runtime.current() != null) {
+            new AlertDialog.Builder(this).setTitle("Local workspace")
+                    .setMessage("Keep Linux running in the background, or stop it and end its running commands. Save your files before stopping.")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Keep running", (dialog, which) -> finish())
+                    .setNeutralButton("Stop Linux", (dialog, which) -> startService(new Intent(this, LocalRuntimeService.class)
+                            .setAction("app.vstab.STOP_LOCAL_RUNTIME"))).show();
+        } else finish();
     }
 
     @Override protected void onDestroy() {

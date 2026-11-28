@@ -10,7 +10,7 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 
 ## Signed release
 
-Prepare the runtime and workbench assets first, following [the runtime build instructions](../native-runtime/README.md).
+Prepare the Linux runtime and workbench assets first, following [the build instructions](../linux-runtime/README.md).
 Set `ANDROID_HOME` and `JAVA_HOME`, then run:
 
 ```sh
@@ -18,15 +18,18 @@ python3 tools/build-android-release.py
 ```
 
 The script builds and verifies a signed Play bundle and APK, runs release lint,
-and writes `dist/vstab-0.1.3-4.aab`, `dist/vstab-0.1.3-4.apk` and checksums.
+and writes `dist/vstab-0.2.0-5-arm64-v8a.aab`,
+`dist/vstab-0.2.0-5-arm64-v8a.apk` and checksums.
 Upload the `.aab` to Google Play; use the `.apk` for direct installation.
 Building does not publish the app.
 
-Release builds use R8 and embed their mapping file and matching native function
-symbol tables in the Play bundle. Versioned `.mapping.txt` and
-`.native-debug-symbols.zip` copies are also retained in `dist/`.
-The native coverage report is `android/app/build/reports/native-symbols-release.json`;
-pre-stripped vendor libraries without matching unstripped builds remain uncovered.
+Releases include the R8 mapping and a `.native-symbol-coverage.json` report.
+The pinned, pre-stripped QEMU build is accepted with native symbol coverage
+reported as unavailable. Google Play's native crash symbols are optional;
+`.native-debug-symbols.zip` is produced only when genuine matching symbols exist.
+Use `--require-native-symbols` or `VSTAB_REQUIRE_NATIVE_SYMBOLS=1` to require full
+coverage and fail the build when symbols are missing.
+The Gradle report is `android/app/build/reports/native-symbols-release.json`.
 
 Signing defaults to the owner-only configuration at
 `~/.local/state/vstab/android-publishing/signing.json`. Override its path with
@@ -39,6 +42,8 @@ Passwords are passed through the process environment, never command arguments.
 
 Use `VSTAB_VERSION_CODE` and `VSTAB_VERSION_NAME` to override the default version
 when releasing an update. The version code must exceed every prior Play upload.
+The default ABI is `arm64-v8a`; use `VSTAB_RUNTIME_ABI=x86_64` for an x86_64 build.
+Output filenames include the selected ABI.
 Release builds require signing; debug builds keep their normal debug key.
 
 The application ID registered in Google Play is `com.vstab`. Java sources and
@@ -47,12 +52,15 @@ generated classes retain the `app.vstab` namespace; the launcher component is
 
 ## Local development
 
-- Open the app to start a local project.
+- Open the app to start the built-in Linux environment.
+- If Termux is installed, first use offers a choice between built-in Linux and Termux.
 - Use the terminal for Node.js, Bash, Git and npm.
 - Use **vstab: Open Shared Folder...** for an Android folder, or **Open with → VStab** for a file.
 - Editing and installed local tools work offline. Downloads and cloud services need a connection.
 
 ## Remote SSH
+
+Use Remote SSH for projects on another computer or server.
 
 1. Open **Remote Explorer** and add a host.
 2. Connect, check its fingerprint, and enter a password or import an SSH key.

@@ -6,7 +6,7 @@
 This policy explains how the VStab project maintainers handle information in
 connection with **VStab for Android**, package name **`com.vstab`**. The project is
 maintained at [github.com/cwittenberg/vstab](https://github.com/cwittenberg/vstab).
-For privacy questions or requests, contact **[vstab@env.now](mailto:vstab@env.now)**.
+For privacy questions or requests, contact **[barbels-mystics-5d@icloud.com](mailto:barbels-mystics-5d@icloud.com)**.
 
 ## Local editing and development
 
@@ -155,7 +155,7 @@ can manage Google diagnostic sharing through your device and Google settings.
 
 ## Contact and support information
 
-If you email **[vstab@env.now](mailto:vstab@env.now)**, we receive the address,
+If you email **[barbels-mystics-5d@icloud.com](mailto:barbels-mystics-5d@icloud.com)**, we receive the address,
 message, attachments and other information you choose to send. We use that
 information to respond to your request, provide support and address related
 privacy or security issues. Email providers process correspondence on our
@@ -175,7 +175,7 @@ are visible to others; use the email address above for private requests.
 ## Children and third-party accounts
 
 For questions about a child's use of VStab or information sent to us, contact
-**[vstab@env.now](mailto:vstab@env.now)**. Third-party services may have their own
+**[barbels-mystics-5d@icloud.com](mailto:barbels-mystics-5d@icloud.com)**. Third-party services may have their own
 age and account requirements.
 
 ## Changes to this policy

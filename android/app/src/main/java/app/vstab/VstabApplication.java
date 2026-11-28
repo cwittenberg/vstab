@@ -14,11 +14,11 @@ public final class VstabApplication extends Application {
         runtime = new LocalRuntimeManager(this);
         android.webkit.ServiceWorkerController.getInstance().setServiceWorkerClient(new android.webkit.ServiceWorkerClient() {
             @Override public android.webkit.WebResourceResponse shouldInterceptRequest(android.webkit.WebResourceRequest request) {
-                synchronized (workbenches) {
-                    for (BundledWorkbench client : workbenches.values()) {
-                        android.webkit.WebResourceResponse response = client.intercept(request);
-                        if (response != null) return response;
-                    }
+                final java.util.List<BundledWorkbench> candidates;
+                synchronized (workbenches) { candidates = new java.util.ArrayList<>(workbenches.values()); }
+                for (BundledWorkbench client : candidates) {
+                    android.webkit.WebResourceResponse response = client.intercept(request);
+                    if (response != null) return response;
                 }
                 return null;
             }

@@ -33,7 +33,7 @@ public final class LocalRuntimeService extends Service {
         PendingIntent stopAction = PendingIntent.getService(this, 1, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new Notification.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_vstab)
                 .setContentTitle("vstab local development environment")
-                .setContentText("Node, extensions and terminal processes are running on this device")
+                .setContentText("Your Linux environment, extensions and terminal tools are running on this device")
                 .setContentIntent(open).setOngoing(true)
                 .addAction(new Notification.Action.Builder(null, "Stop", stopAction).build()).build();
         if (Build.VERSION.SDK_INT >= 34) startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);

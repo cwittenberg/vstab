@@ -11,12 +11,13 @@ import json
 import mmap
 import os
 from pathlib import Path
+import re
 import shutil
 import struct
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNTIME = ROOT / '.local/android-runtime'
+RUNTIME = ROOT / '.local/linux-runtime'
 
 
 def sha(path):
@@ -85,6 +86,24 @@ def matches_payload(symbols, payload):
             symbols['allocatedSections'] == payload['allocatedSections'])
 
 
+def pinned_payloads(manifest_path):
+    """Explicitly reviewed native host inputs allowed to lack debug symbols."""
+    manifest = json.loads(manifest_path.read_text())
+    if manifest.get('schema') != 1:
+        raise ValueError('Unsupported native host manifest')
+    allowed = {}
+    for abi, entry in manifest.get('architectures', {}).items():
+        name, digest = entry.get('executable', ''), entry.get('executableSha256', '')
+        if (not re.fullmatch(r'[A-Za-z0-9_-]+', abi) or
+                not re.fullmatch(r'lib[A-Za-z0-9_-]+\.so', name) or
+                not re.fullmatch(r'[a-f0-9]{64}', digest)):
+            raise ValueError('Invalid pinned native host identity')
+        allowed[abi + '/' + name] = digest
+    if not allowed:
+        raise ValueError('The native host manifest has no pinned executables')
+    return allowed
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ndk', type=Path, default=os.environ.get('ANDROID_NDK_HOME'))
@@ -92,6 +111,10 @@ def main():
     parser.add_argument('--unstripped-root', type=Path, default=RUNTIME / 'unstripped')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--report', type=Path, required=True)
+    parser.add_argument('--allow-stripped-manifest', type=Path,
+                        help='Permit missing symbols only for exact executable hashes in this host manifest')
+    parser.add_argument('--require-symbols', action='store_true',
+                        help='Require genuine symbols for every runtime native payload')
     args = parser.parse_args()
     if args.ndk is None:
         parser.error('Pass --ndk or set ANDROID_NDK_HOME')
@@ -107,6 +130,7 @@ def main():
     output.mkdir(parents=True)
     records = {}
     prepared = 0
+    allowed = pinned_payloads(args.allow_stripped_manifest) if args.allow_stripped_manifest else {}
     for payload_path in sorted(jni_root.glob('*/*.so')):
         relative = payload_path.relative_to(jni_root)
         payload_hash = sha(payload_path)
@@ -142,10 +166,14 @@ def main():
             break
         if not record['prepared']:
             record['reason'] = 'Static symbol table was stripped and no matching unstripped build is available'
+            record['allowedPrestripped'] = allowed.get(str(relative)) == payload_hash
         records[str(relative)] = record
-    if not records or not prepared:
-        raise RuntimeError('No genuine matching native function symbol tables are available')
-    report = {'schema': 1, 'debugSymbolLevel': 'SYMBOL_TABLE',
+    report = {'schema': 1, 'requestedDebugSymbolLevel': 'SYMBOL_TABLE',
+              'debugSymbolLevel': 'SYMBOL_TABLE' if prepared else 'NONE',
+              'coverage': 'complete' if prepared == len(records) and records else 'partial' if prepared else 'unavailable',
+              'symbolPolicy': 'require-complete' if args.require_symbols else 'allow-pinned-prestripped',
+              'allowStrippedManifestSha256': sha(args.allow_stripped_manifest) if args.allow_stripped_manifest else None,
+              'nativeSymbolArchiveExpected': bool(prepared),
               'nativeFiles': len(records), 'preparedSymbolFiles': prepared,
               'unavailableSymbolFiles': len(records) - prepared,
               'runtimePayloadModified': False,
@@ -153,6 +181,13 @@ def main():
               'files': records}
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + '\n')
+    if not records:
+        raise RuntimeError('No runtime native payloads were found; see ' + str(args.report))
+    unavailable = [name for name, record in records.items() if not record['prepared']]
+    if args.require_symbols and unavailable:
+        raise RuntimeError('Strict native symbol coverage is unavailable; see ' + str(args.report))
+    if any(not records[name].get('allowedPrestripped') for name in unavailable):
+        raise RuntimeError('Unpinned native payloads lack genuine symbols; see ' + str(args.report))
     print(json.dumps({key: value for key, value in report.items() if key != 'files'}))
 
 

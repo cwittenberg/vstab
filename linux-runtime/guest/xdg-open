@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /opt/code-server/lib/node /usr/local/lib/vstab/open-uri.cjs "$@"

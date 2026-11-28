@@ -29,6 +29,7 @@ final class BundledWorkbench {
     private final String staticPrefix;
     private final String vsBase;
     private final byte[] startup;
+    private final VerifiedBackendAssets verifiedBackend;
 
     BundledWorkbench(Context context, ConnectionController.Ready session) throws Exception {
         this.context = context.getApplicationContext();
@@ -43,13 +44,32 @@ final class BundledWorkbench {
         }
         staticPrefix = leadingSlash(manifest.getString("staticPrefix"));
         vsBase = manifest.optString("vsBase", staticPrefix.substring(0, staticPrefix.lastIndexOf("/static/")));
+        Map<String, VerifiedBackendAssets.Entry> shared = new HashMap<>();
+        JSONObject omitted = manifest.optJSONObject("sharedBackendAssets");
+        if (omitted != null) {
+            java.util.Iterator<String> names = omitted.keys();
+            while (names.hasNext()) {
+                String name = names.next();
+                if (!(name.startsWith("static/") || name.startsWith("code-server-static/"))
+                        || manifest.getJSONObject("files").has(name))
+                    throw new IllegalStateException("The pinned editor asset manifest is inconsistent.");
+                JSONObject item = omitted.getJSONObject(name);
+                String backendPath = item.getString("backendPath");
+                if (!(backendPath.startsWith(staticPrefix) || backendPath.startsWith("/_static/")))
+                    throw new IllegalStateException("The pinned editor asset is outside the static backend routes.");
+                shared.put(name, new VerifiedBackendAssets.Entry(item.getString("sha256"), item.getLong("bytes"), backendPath));
+            }
+        }
+        verifiedBackend = shared.isEmpty() ? null : new VerifiedBackendAssets(
+                new java.io.File(context.getCacheDir(), "verified-editor-assets"), shared,
+                VerifiedBackendAssets.authenticatedHttp(origin, session.cookies));
         authCallbacks = new AuthCallbackServer();
         try { startup = render().getBytes(StandardCharsets.UTF_8); }
         catch (Exception error) { authCallbacks.close(); throw error; }
     }
 
     String provenance() {
-        return "Editor delivered from APK assets\nCode OSS " + manifest.optString("codeVersion")
+        return (verifiedBackend == null ? "Editor delivered from APK assets" : "Pinned editor delivered from APK and verified backend assets") + "\nCode OSS " + manifest.optString("codeVersion")
                 + "\nSource commit: " + manifest.optString("upstreamCommit")
                 + "\nServer integration: code-server " + manifest.optString("codeServerVersion");
     }
@@ -68,6 +88,8 @@ final class BundledWorkbench {
             if (path.startsWith(staticPrefix)) {
                 String relative = path.substring(staticPrefix.length());
                 if (!safeAssetPath(relative)) return missing();
+                if (verifiedBackend != null && verifiedBackend.contains("static/" + relative))
+                    return verifiedResponse("static/" + relative, mime(relative));
                 return response(mime(relative), assets.open("workbench/static/" + relative, AssetManager.ACCESS_STREAMING), true);
             }
             if (path.startsWith("/controls/")) {
@@ -78,6 +100,8 @@ final class BundledWorkbench {
             if (path.startsWith("/_static/")) {
                 String relative = path.substring("/_static/".length());
                 if (!safeAssetPath(relative)) return missing();
+                if (verifiedBackend != null && verifiedBackend.contains("code-server-static/" + relative))
+                    return verifiedResponse("code-server-static/" + relative, mime(relative));
                 return response(mime(relative), assets.open("workbench/code-server-static/" + relative, AssetManager.ACCESS_STREAMING), true);
             }
             if (path.equals(vsBase + "/manifest.json")) {
@@ -114,9 +138,9 @@ final class BundledWorkbench {
         // it to a newly opened document model. Use Monaco's supported textarea
         // input path so Android Open with receives ordinary edits reliably.
         defaults.put("editor.editContext", false);
-        if (session.localRuntime) defaults.put("claudeCode.claudeProcessWrapper",
-                new java.io.File(context.getApplicationInfo().nativeLibraryDir, "libclaude-launch.so").getAbsolutePath());
         configuration.put("configurationDefaults", defaults);
+        configuration.put("vstabDirectLoopback", session.directLoopback);
+        configuration.put("vstabEnvironmentProvider", session.environmentProvider);
         configuration.put("remoteAuthority", "remote");
         configuration.put("userDataPath", session.home + "/.local/share/vstab/user-data");
         configuration.put("callbackRoute", trimLeading(vsBase) + "/callback");
@@ -155,14 +179,31 @@ final class BundledWorkbench {
     }
 
     private WebResourceResponse response(String mime, InputStream stream, boolean immutable) {
+        return response(mime, stream, immutable, "apk");
+    }
+
+    private WebResourceResponse response(String mime, InputStream stream, boolean immutable, String source) {
         Map<String, String> headers = new HashMap<>();
         // Alpha APKs can change embedder patches without changing upstream's
         // product commit in the URL. Never reuse a prior APK's editor scripts.
         headers.put("Cache-Control", "no-store");
         headers.put("X-Content-Type-Options", "nosniff");
-        headers.put("X-Vstab-Source", "apk");
+        headers.put("X-Vstab-Source", source);
         headers.put("X-Vstab-CodeOSS-Commit", manifest.optString("upstreamCommit"));
         return new WebResourceResponse(mime, isText(mime) ? "UTF-8" : null, 200, "OK", headers, stream);
+    }
+
+    private WebResourceResponse verifiedResponse(String name, String mime) {
+        try { return response(mime, verifiedBackend.open(name), true, "verified-backend"); }
+        catch (IOException rejected) {
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Cache-Control", "no-store"); headers.put("X-Content-Type-Options", "nosniff");
+            headers.put("X-Vstab-Source", "verified-backend-rejected");
+            String message = "The matching backend editor asset could not be verified: " + name
+                    + ". Reconnect or repair the matching Linux backend.";
+            return new WebResourceResponse("text/plain", "UTF-8", 502, "Editor Asset Verification Failed", headers,
+                    new ByteArrayInputStream(message.getBytes(StandardCharsets.UTF_8)));
+        }
     }
 
     private WebResourceResponse missing() {

@@ -1,0 +1,1353 @@
+{
+  "schema": 1,
+  "source": "https://packages-cf.termux.dev/apt/termux-main",
+  "signingKey": "CC72CF8BA7DBFA0182877D045A897D96E57CF20C",
+  "architectures": {
+    "x86_64": {
+      "termuxArchitecture": "x86_64",
+      "executable": "qemu-system-x86_64",
+      "indexSha256": "0e82fc1ef595cfc4b0c5fdfb4a579c116c12c9b10a8387a3f001b4d6c755df9c",
+      "inReleaseSha256": "327c31e6a34c603dcf4c2b75bfe5f7d5f6e1dcc3e3989ee14f48cf4308faf062",
+      "packages": [
+        {
+          "Package": "abseil-cpp",
+          "Version": "20260817.0",
+          "Filename": "pool/main/a/abseil-cpp/abseil-cpp_20260817.0_x86_64.deb",
+          "SHA256": "cdd59794ae695e8dbade2d718bf781bc95b1ef01ee159e7617e90d9bca1b2da5",
+          "Size": "1279364"
+        },
+        {
+          "Package": "alsa-lib",
+          "Version": "1.2.16.1",
+          "Filename": "pool/main/a/alsa-lib/alsa-lib_1.2.16.1_x86_64.deb",
+          "SHA256": "c3aaaa9263a5029c00a1837863356e2d4a3bdb1ecef5bd6dc48d7336273a0a41",
+          "Size": "474368"
+        },
+        {
+          "Package": "argp",
+          "Version": "1.5.0-1",
+          "Filename": "pool/main/a/argp/argp_1.5.0-1_x86_64.deb",
+          "SHA256": "7e6521f6bcb2bb76ab3db95c883fc70db536765a3f0d38fcbca3695a6d2ac60e",
+          "Size": "21956"
+        },
+        {
+          "Package": "ca-certificates",
+          "Version": "1:2026.11.05-1",
+          "Filename": "pool/main/c/ca-certificates/ca-certificates_1:2026.11.05-1_all.deb",
+          "SHA256": "12fc350fc5ad638338b06b04835bce897615f8c93f96d30ac396cdb39b850c6b",
+          "Size": "110148"
+        },
+        {
+          "Package": "dbus",
+          "Version": "1.16.4",
+          "Filename": "pool/main/d/dbus/dbus_1.16.4_x86_64.deb",
+          "SHA256": "f03a238d841c6bd146f324a6429333db29036a4063f2c3d54daa86ea040eb872",
+          "Size": "447112"
+        },
+        {
+          "Package": "dtc",
+          "Version": "1.8.1",
+          "Filename": "pool/main/d/dtc/dtc_1.8.1_x86_64.deb",
+          "SHA256": "a93e4492b960a2871987a5d9fd917ce69abe220e9fda8f54f422f7abba534ecf",
+          "Size": "88952"
+        },
+        {
+          "Package": "gdbm",
+          "Version": "1.26-1",
+          "Filename": "pool/main/g/gdbm/gdbm_1.26-1_x86_64.deb",
+          "SHA256": "af6c89b403d42a98898c665fc2c48da59a7d20e6e26f651a654790661844001f",
+          "Size": "155484"
+        },
+        {
+          "Package": "glib",
+          "Version": "2.90.2",
+          "Filename": "pool/main/g/glib/glib_2.90.2_x86_64.deb",
+          "SHA256": "9e9b3523dcec6d532f6c9bb012a9fe1ddd5cf93cd4db5d50a5fa814c4cd281aa",
+          "Size": "2641052"
+        },
+        {
+          "Package": "graphene",
+          "Version": "1.10.8-3",
+          "Filename": "pool/main/g/graphene/graphene_1.10.8-3_x86_64.deb",
+          "SHA256": "051e20045d0feb887974bd784b5377ca3731611e8ce63de0c7d038c1224f2669",
+          "Size": "191788"
+        },
+        {
+          "Package": "gst-plugins-base",
+          "Version": "1.28.9",
+          "Filename": "pool/main/g/gst-plugins-base/gst-plugins-base_1.28.9_x86_64.deb",
+          "SHA256": "80f4b31c0bfbd4d20d63b9125bff46e6411af4392502d5bfd95a679e615d86f5",
+          "Size": "2111888"
+        },
+        {
+          "Package": "gstreamer",
+          "Version": "1.28.9",
+          "Filename": "pool/main/g/gstreamer/gstreamer_1.28.9_x86_64.deb",
+          "SHA256": "f0ad377f75bb2ff367b6a2945fdf8e79307507ff4be227a190ec2f96f9cacaa5",
+          "Size": "1400512"
+        },
+        {
+          "Package": "jack2",
+          "Version": "1.9.22-2",
+          "Filename": "pool/main/j/jack2/jack2_1.9.22-2_x86_64.deb",
+          "SHA256": "721ad1195b3f15f8af94f68e3738602e86f894708135ea9ba1f9eb23f91ac6d1",
+          "Size": "398212"
+        },
+        {
+          "Package": "json-c",
+          "Version": "0.19",
+          "Filename": "pool/main/j/json-c/json-c_0.19_x86_64.deb",
+          "SHA256": "3817e1da4df01e43bf471ece32a8ae36327a3e56e293ec140a722de9aeb3d672",
+          "Size": "53100"
+        },
+        {
+          "Package": "libandroid-execinfo",
+          "Version": "0.1-3",
+          "Filename": "pool/main/liba/libandroid-execinfo/libandroid-execinfo_0.1-3_x86_64.deb",
+          "SHA256": "348582b47b4b6dec8c13147437d8bd93d029239bc95f30635074cad08efb6220",
+          "Size": "15184"
+        },
+        {
+          "Package": "libandroid-glob",
+          "Version": "0.6-3",
+          "Filename": "pool/main/liba/libandroid-glob/libandroid-glob_0.6-3_x86_64.deb",
+          "SHA256": "33b5d2ce934e89d50363e7ea267cea697da937d14de9fcea78cc7271956ef86e",
+          "Size": "7256"
+        },
+        {
+          "Package": "libandroid-posix-semaphore",
+          "Version": "0.1-4",
+          "Filename": "pool/main/liba/libandroid-posix-semaphore/libandroid-posix-semaphore_0.1-4_x86_64.deb",
+          "SHA256": "4bde3f8bc00fa59761544593f0606a05e4b449801f1c79038c42ce66988d0eb0",
+          "Size": "3984"
+        },
+        {
+          "Package": "libandroid-shmem",
+          "Version": "0.7",
+          "Filename": "pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_x86_64.deb",
+          "SHA256": "ffa9e4c87467b158b148d0ff92dda796aa038276c2075af3269cdcdb06f25797",
+          "Size": "7388"
+        },
+        {
+          "Package": "libandroid-stub",
+          "Version": "30-3",
+          "Filename": "pool/main/liba/libandroid-stub/libandroid-stub_30-3_x86_64.deb",
+          "SHA256": "73459e6d34535be52dd88638c0e0d75956cea24e381dd7012e0c354562679db5",
+          "Size": "26372"
+        },
+        {
+          "Package": "libandroid-support",
+          "Version": "29-1",
+          "Filename": "pool/main/liba/libandroid-support/libandroid-support_29-1_x86_64.deb",
+          "SHA256": "665900760c05959ec076082a0941f05bd452f301e5a70bdfa7383fd3404d44d5",
+          "Size": "10968"
+        },
+        {
+          "Package": "libandroid-sysv-semaphore",
+          "Version": "0.1-1",
+          "Filename": "pool/main/liba/libandroid-sysv-semaphore/libandroid-sysv-semaphore_0.1-1_x86_64.deb",
+          "SHA256": "bb13235269380e93d07dc350bdcd9cbd0e0634c46a6085764c8101e2c1ecb723",
+          "Size": "3540"
+        },
+        {
+          "Package": "libbz2",
+          "Version": "1.0.8-8",
+          "Filename": "pool/main/libb/libbz2/libbz2_1.0.8-8_x86_64.deb",
+          "SHA256": "f6f81d38a40c1626202da1e87727e5a3e6de296b1c0eb252af8948646b164ca0",
+          "Size": "27564"
+        },
+        {
+          "Package": "libc++",
+          "Version": "30",
+          "Filename": "pool/main/libc/libc++/libc++_30_x86_64.deb",
+          "SHA256": "c9bcd9a8067a19c9c0e4893a72d314a2e37d6b67ce8dd05c67b9bbacad044b4f",
+          "Size": "367792"
+        },
+        {
+          "Package": "libcap-ng",
+          "Version": "2:0.9.6",
+          "Filename": "pool/main/libc/libcap-ng/libcap-ng_2:0.9.6_x86_64.deb",
+          "SHA256": "5f5c07e5e96bb415a935b1b25f729ba03db7952a5e55c65582de5fdbe481c83d",
+          "Size": "58540"
+        },
+        {
+          "Package": "libcrypt",
+          "Version": "0.2-6",
+          "Filename": "pool/main/libc/libcrypt/libcrypt_0.2-6_x86_64.deb",
+          "SHA256": "c424f96ce977cf2e8aa44925a852fd4c6c63564490a100cc44f63b71afd943e2",
+          "Size": "8808"
+        },
+        {
+          "Package": "libcurl",
+          "Version": "8.23.0",
+          "Filename": "pool/main/libc/libcurl/libcurl_8.23.0_x86_64.deb",
+          "SHA256": "fa71ce8eca3d0aa48a748fc60e4519351fc9c4d51b20cac5722190cb002cfd1c",
+          "Size": "1084840"
+        },
+        {
+          "Package": "libdb",
+          "Version": "18.1.40-6",
+          "Filename": "pool/main/libd/libdb/libdb_18.1.40-6_x86_64.deb",
+          "SHA256": "ea4f216fb8472dbc7a9876eedb7f40c0f33d6be3a48109d4bf32b32d2c67b2e5",
+          "Size": "535176"
+        },
+        {
+          "Package": "libdw",
+          "Version": "0.197",
+          "Filename": "pool/main/libd/libdw/libdw_0.197_x86_64.deb",
+          "SHA256": "09b39adff368fe66353df537b993a66ac0384c6e4eafb03a7577545cac64723f",
+          "Size": "229900"
+        },
+        {
+          "Package": "libelf",
+          "Version": "0.197",
+          "Filename": "pool/main/libe/libelf/libelf_0.197_x86_64.deb",
+          "SHA256": "22446e45c0d033c3c020b02151bff4f72e21cfa49bf9b827b4242836ff0b25f1",
+          "Size": "126988"
+        },
+        {
+          "Package": "libevent",
+          "Version": "2.1.13",
+          "Filename": "pool/main/libe/libevent/libevent_2.1.13_x86_64.deb",
+          "SHA256": "5d0a0913d0280d5c1a499b119c4867499e893056d1dec4bac29a7723545217ec",
+          "Size": "216280"
+        },
+        {
+          "Package": "libexpat",
+          "Version": "2.11.0",
+          "Filename": "pool/main/libe/libexpat/libexpat_2.11.0_x86_64.deb",
+          "SHA256": "0e703576d59ac8bd4d3592786ac7932338fea8bdce032d052bf0edbc6dce8675",
+          "Size": "113088"
+        },
+        {
+          "Package": "libffi",
+          "Version": "3.8.2",
+          "Filename": "pool/main/libf/libffi/libffi_3.8.2_x86_64.deb",
+          "SHA256": "f1163fccc2c7d51d0036c451b7e180215287aef4e768321b133f17f9de1b15bb",
+          "Size": "39364"
+        },
+        {
+          "Package": "libflac",
+          "Version": "1.5.0-1",
+          "Filename": "pool/main/libf/libflac/libflac_1.5.0-1_x86_64.deb",
+          "SHA256": "2f07360bfa8c876eeb73cd566c4c0bde19345645dcae4fbc6db14cc12301c6e3",
+          "Size": "212968"
+        },
+        {
+          "Package": "libgmp",
+          "Version": "6.3.0-2",
+          "Filename": "pool/main/libg/libgmp/libgmp_6.3.0-2_x86_64.deb",
+          "SHA256": "743e742d1d2900bffecf17e85487c830df871653bcdaede223425d2c62ac1b49",
+          "Size": "347964"
+        },
+        {
+          "Package": "libgnutls",
+          "Version": "3.8.14",
+          "Filename": "pool/main/libg/libgnutls/libgnutls_3.8.14_x86_64.deb",
+          "SHA256": "2043951a25aabb28b5580964caf04402d2f32a445ece4619ea5a8c75132ecc44",
+          "Size": "843800"
+        },
+        {
+          "Package": "libiconv",
+          "Version": "1.19.1",
+          "Filename": "pool/main/libi/libiconv/libiconv_1.19.1_x86_64.deb",
+          "SHA256": "3eb0c454676ad24d26c79601721b2eb3f9485c611ad0179fb86b17229344f46d",
+          "Size": "564832"
+        },
+        {
+          "Package": "libidn2",
+          "Version": "2.3.8-1",
+          "Filename": "pool/main/libi/libidn2/libidn2_2.3.8-1_x86_64.deb",
+          "SHA256": "4f4f91f5bc8b7b215f153fb96808f75b55a86c6e8ec66ff3286b859cb6048500",
+          "Size": "105924"
+        },
+        {
+          "Package": "libjpeg-turbo",
+          "Version": "3.2.1",
+          "Filename": "pool/main/libj/libjpeg-turbo/libjpeg-turbo_3.2.1_x86_64.deb",
+          "SHA256": "9a4399b4e26c58b98a2d9f38bfc7c0db883db273627efade044a08eabc54d04c",
+          "Size": "500164"
+        },
+        {
+          "Package": "libltdl",
+          "Version": "2.6.2",
+          "Filename": "pool/main/libl/libltdl/libltdl_2.6.2_x86_64.deb",
+          "SHA256": "9a71bef5c3ba9da2a90ec6dfa0fd99e1802cb03cc3ec37059340c6c7b7f441fd",
+          "Size": "18664"
+        },
+        {
+          "Package": "liblz4",
+          "Version": "1.11.1",
+          "Filename": "pool/main/libl/liblz4/liblz4_1.11.1_x86_64.deb",
+          "SHA256": "d25f9c6958555b03bfcb01787ed96f1b3dfb4d2197a1ba0bc561bd930184d498",
+          "Size": "107692"
+        },
+        {
+          "Package": "liblzma",
+          "Version": "5.8.4",
+          "Filename": "pool/main/libl/liblzma/liblzma_5.8.4_x86_64.deb",
+          "SHA256": "100ea7503a0b9ecffa45e1f168d035651f2eb7aedbebe71dd21fc0da4a84ef16",
+          "Size": "199316"
+        },
+        {
+          "Package": "liblzo",
+          "Version": "2.10-5",
+          "Filename": "pool/main/libl/liblzo/liblzo_2.10-5_x86_64.deb",
+          "SHA256": "90fe00b4b8746317c3698d50294fced19df5741e5e5f81e33cc90c86693398c7",
+          "Size": "77364"
+        },
+        {
+          "Package": "libmp3lame",
+          "Version": "4.0-1",
+          "Filename": "pool/main/libm/libmp3lame/libmp3lame_4.0-1_x86_64.deb",
+          "SHA256": "1599ab4003ae944c648d5bd7a9b00001bf4ef34a2dde6cf8c23b7ea58a2174a5",
+          "Size": "102764"
+        },
+        {
+          "Package": "libmpg123",
+          "Version": "1.33.7",
+          "Filename": "pool/main/libm/libmpg123/libmpg123_1.33.7_x86_64.deb",
+          "SHA256": "d39a982b5080b1a01f3d21707d4de72ea6ce13ab795548fa307bafdb4c4c0323",
+          "Size": "187208"
+        },
+        {
+          "Package": "libnettle",
+          "Version": "4.0+really3.10.2",
+          "Filename": "pool/main/libn/libnettle/libnettle_4.0+really3.10.2_x86_64.deb",
+          "SHA256": "e754086e59615e260bdb24b8000732a3eaedefa40c8c11e30a30a9c22877e815",
+          "Size": "400800"
+        },
+        {
+          "Package": "libnfs",
+          "Version": "8.1.0",
+          "Filename": "pool/main/libn/libnfs/libnfs_8.1.0_x86_64.deb",
+          "SHA256": "82d334fd797531bfd3946a43695582b83142b906c5e21274a9056119d4aa35bb",
+          "Size": "199872"
+        },
+        {
+          "Package": "libnghttp2",
+          "Version": "1.71.0",
+          "Filename": "pool/main/libn/libnghttp2/libnghttp2_1.71.0_x86_64.deb",
+          "SHA256": "9bc1791438de6380038835cbd10c9cede716212cc32e37eb54407cd24f6605d6",
+          "Size": "98824"
+        },
+        {
+          "Package": "libnghttp3",
+          "Version": "1.19.0",
+          "Filename": "pool/main/libn/libnghttp3/libnghttp3_1.19.0_x86_64.deb",
+          "SHA256": "b3fa3f6117a8d2c1e5c6535f733282c077d39760b79bd08eac4ffba8da7bc0e6",
+          "Size": "73208"
+        },
+        {
+          "Package": "libngtcp2",
+          "Version": "1.26.0",
+          "Filename": "pool/main/libn/libngtcp2/libngtcp2_1.26.0_x86_64.deb",
+          "SHA256": "9a4ba347834cf4593cd80df9c9ad4caaf0486946ac0e1a812d10f0d712b5eae2",
+          "Size": "192756"
+        },
+        {
+          "Package": "libogg",
+          "Version": "1.3.6-1",
+          "Filename": "pool/main/libo/libogg/libogg_1.3.6-1_x86_64.deb",
+          "SHA256": "55dd0908feb56bec69fdf1c0aaeedb73f6c74cc28495c0d640172845863c9eed",
+          "Size": "188844"
+        },
+        {
+          "Package": "libopus",
+          "Version": "1.6.1",
+          "Filename": "pool/main/libo/libopus/libopus_1.6.1_x86_64.deb",
+          "SHA256": "724f0215e78a21a02f8dd01dd6c78d6cea71457c8080be99f984f5d8c8f5e4d9",
+          "Size": "201676"
+        },
+        {
+          "Package": "liborc",
+          "Version": "0.4.44",
+          "Filename": "pool/main/libo/liborc/liborc_0.4.44_x86_64.deb",
+          "SHA256": "5aeb179d527c0db67abbf3404bcea4a356f472b4c114cb0ece225919631aebe7",
+          "Size": "289548"
+        },
+        {
+          "Package": "libpixman",
+          "Version": "0.46.4-1",
+          "Filename": "pool/main/libp/libpixman/libpixman_0.46.4-1_x86_64.deb",
+          "SHA256": "169e3ce2e2adf1cbb51c39fc7e7e2532f519b3e5362fef24e895d6c98e82a8f5",
+          "Size": "197900"
+        },
+        {
+          "Package": "libpng",
+          "Version": "1.6.59",
+          "Filename": "pool/main/libp/libpng/libpng_1.6.59_x86_64.deb",
+          "SHA256": "b5bbc3c552255d072ac5e53ec7641128f373d09e404abd01a8285b1a4a7f324c",
+          "Size": "199204"
+        },
+        {
+          "Package": "libsamplerate",
+          "Version": "0.2.2-4",
+          "Filename": "pool/main/libs/libsamplerate/libsamplerate_0.2.2-4_x86_64.deb",
+          "SHA256": "ab641f508e9846952edbd452c9661810c723787c40dc309e582c7a27a4333fb3",
+          "Size": "975136"
+        },
+        {
+          "Package": "libsasl",
+          "Version": "2.1.28-3",
+          "Filename": "pool/main/libs/libsasl/libsasl_2.1.28-3_x86_64.deb",
+          "SHA256": "6f68d36bd6cc613de9990fb83046660b14b4533841a333e573a40d02b2218a39",
+          "Size": "100192"
+        },
+        {
+          "Package": "libslirp",
+          "Version": "4.9.7",
+          "Filename": "pool/main/libs/libslirp/libslirp_4.9.7_x86_64.deb",
+          "SHA256": "ad79bb9553a37749850f6e4394ee52f812fa6594865588a01367f428518f1569",
+          "Size": "59448"
+        },
+        {
+          "Package": "libsndfile",
+          "Version": "1.2.2-3",
+          "Filename": "pool/main/libs/libsndfile/libsndfile_1.2.2-3_x86_64.deb",
+          "SHA256": "5c2a37ce7703dc05fc1eb014ced672e4783eae7929983c3d4298a3b1eb500361",
+          "Size": "228292"
+        },
+        {
+          "Package": "libsoxr",
+          "Version": "0.1.3-8",
+          "Filename": "pool/main/libs/libsoxr/libsoxr_0.1.3-8_x86_64.deb",
+          "SHA256": "3cd66761119a4f4cb621a701279c2b2edc9a6c4e9f1872dbfc8058fb76c6a66f",
+          "Size": "371684"
+        },
+        {
+          "Package": "libspice-protocol",
+          "Version": "0.14.5",
+          "Filename": "pool/main/libs/libspice-protocol/libspice-protocol_0.14.5_all.deb",
+          "SHA256": "a90a7e66b36b9c89f652e10a3a48957e403c3abf3d5b1ae57324cc1cba19a8f8",
+          "Size": "18488"
+        },
+        {
+          "Package": "libspice-server",
+          "Version": "0.16.0-1",
+          "Filename": "pool/main/libs/libspice-server/libspice-server_0.16.0-1_x86_64.deb",
+          "SHA256": "3357c9bdcfd3a8c5bfb0b3f3bda04327f38da098839471b7b097b5bc281f555c",
+          "Size": "288692"
+        },
+        {
+          "Package": "libsqlite",
+          "Version": "3.54.1-1",
+          "Filename": "pool/main/libs/libsqlite/libsqlite_3.54.1-1_x86_64.deb",
+          "SHA256": "497471806378934fec8a6f3b5db70cf52a3652828786a241e2e37eebc19112b0",
+          "Size": "815224"
+        },
+        {
+          "Package": "libssh",
+          "Version": "0.12.2",
+          "Filename": "pool/main/libs/libssh/libssh_0.12.2_x86_64.deb",
+          "SHA256": "9090c7d8dcc794f42087f41b15b7f2b4f7ab695db3c90373c366dff3532d98cb",
+          "Size": "251736"
+        },
+        {
+          "Package": "libssh2",
+          "Version": "1.11.1-2",
+          "Filename": "pool/main/libs/libssh2/libssh2_1.11.1-2_x86_64.deb",
+          "SHA256": "00db1c1497e8703281efded7f1f2a63824b145c980d9ec309ae0ab7ccb9ce1c5",
+          "Size": "223300"
+        },
+        {
+          "Package": "libtasn1",
+          "Version": "4.21.0",
+          "Filename": "pool/main/libt/libtasn1/libtasn1_4.21.0_x86_64.deb",
+          "SHA256": "1680378db0b5350d563783eb29ffe7c2397e204c8ab031047cfc3316e61b879b",
+          "Size": "104472"
+        },
+        {
+          "Package": "libtheora",
+          "Version": "1.2.0-1",
+          "Filename": "pool/main/libt/libtheora/libtheora_1.2.0-1_x86_64.deb",
+          "SHA256": "b1903d622483976402e2554df61845c7b789b36a7b86fda087307e19802d2d7c",
+          "Size": "145480"
+        },
+        {
+          "Package": "libunbound",
+          "Version": "1.26.2",
+          "Filename": "pool/main/libu/libunbound/libunbound_1.26.2_x86_64.deb",
+          "SHA256": "7b1f9155b69184e051d73ad68d82ae146a643fda5be084641b3edb17aedbffa7",
+          "Size": "425520"
+        },
+        {
+          "Package": "libunistring",
+          "Version": "1.5",
+          "Filename": "pool/main/libu/libunistring/libunistring_1.5_x86_64.deb",
+          "SHA256": "261efedb55f20f18ea943a78f35d89791a4805e80684bdab39dc15a8f9a93af8",
+          "Size": "583224"
+        },
+        {
+          "Package": "libusb",
+          "Version": "1.0.30",
+          "Filename": "pool/main/libu/libusb/libusb_1.0.30_x86_64.deb",
+          "SHA256": "483b5d601257d9a75c0ccefcf3fd3b42d6b5df25b76d123620d2898bf6254485",
+          "Size": "60712"
+        },
+        {
+          "Package": "libusbredir",
+          "Version": "0.15.0",
+          "Filename": "pool/main/libu/libusbredir/libusbredir_0.15.0_x86_64.deb",
+          "SHA256": "4e9680931a0419e718d664a455715c5031475fd4384e4b80222ac02f727cf371",
+          "Size": "37096"
+        },
+        {
+          "Package": "libvorbis",
+          "Version": "1.3.7-4",
+          "Filename": "pool/main/libv/libvorbis/libvorbis_1.3.7-4_x86_64.deb",
+          "SHA256": "9515c03de58faa17e2e19deb78da09289c90b939c17fcbaf4b171aebfefb65bf",
+          "Size": "266172"
+        },
+        {
+          "Package": "libwebrtc-audio-processing",
+          "Version": "2.1",
+          "Filename": "pool/main/libw/libwebrtc-audio-processing/libwebrtc-audio-processing_2.1_x86_64.deb",
+          "SHA256": "41c2edbeca90f597a7c629017e1c51ee9e06fdb1d36400cdee7ad1d09eedb864",
+          "Size": "350700"
+        },
+        {
+          "Package": "libx11",
+          "Version": "1.8.14",
+          "Filename": "pool/main/libx/libx11/libx11_1.8.14_x86_64.deb",
+          "SHA256": "e155dc1171b12a3f625e8516aa195d3c4ac63b850b079b203029b1b0874d497d",
+          "Size": "1929752"
+        },
+        {
+          "Package": "libxau",
+          "Version": "1.0.12-2",
+          "Filename": "pool/main/libx/libxau/libxau_1.0.12-2_x86_64.deb",
+          "SHA256": "b964143f84f11270ba14baf9a747b9732f5a9b84d2ca0e70ca26ba0364e0ce0b",
+          "Size": "9244"
+        },
+        {
+          "Package": "libxcb",
+          "Version": "1.17.0-1",
+          "Filename": "pool/main/libx/libxcb/libxcb_1.17.0-1_x86_64.deb",
+          "SHA256": "38da04c89e95026282c1277ca475fe02aca78735e0af48e3aada6b5aed78b894",
+          "Size": "908496"
+        },
+        {
+          "Package": "libxdmcp",
+          "Version": "1.1.5-2",
+          "Filename": "pool/main/libx/libxdmcp/libxdmcp_1.1.5-2_x86_64.deb",
+          "SHA256": "814a80d52fdfd193286f3a2e50215a10f03f6e64579cbdef3886cf499adf896d",
+          "Size": "24372"
+        },
+        {
+          "Package": "libxext",
+          "Version": "1.3.7",
+          "Filename": "pool/main/libx/libxext/libxext_1.3.7_x86_64.deb",
+          "SHA256": "91e33ce5d5ebc26118bc3e2f3266f508fd94ea512b6df4ed633118f4d754eb2c",
+          "Size": "96860"
+        },
+        {
+          "Package": "libxi",
+          "Version": "1.8.4",
+          "Filename": "pool/main/libx/libxi/libxi_1.8.4_x86_64.deb",
+          "SHA256": "c558ba4529a341bc2e3f1aa8decc0602aaa3f92812bb22405b9c6e644e54f174",
+          "Size": "141992"
+        },
+        {
+          "Package": "libxv",
+          "Version": "1.0.13-1",
+          "Filename": "pool/main/libx/libxv/libxv_1.0.13-1_x86_64.deb",
+          "SHA256": "cc0c77f9ff1e1d37217feff92d8de846db225841db41128c33300226c82ca232",
+          "Size": "31492"
+        },
+        {
+          "Package": "ncurses",
+          "Version": "6.6.20260307+really6.5.20250830",
+          "Filename": "pool/main/n/ncurses/ncurses_6.6.20260307+really6.5.20250830_x86_64.deb",
+          "SHA256": "3f30f53c6a41c8450d146d4d42611a44be6ba0a8de1e8bb4dc903109a5fc3ff1",
+          "Size": "570036"
+        },
+        {
+          "Package": "ncurses-ui-libs",
+          "Version": "6.6.20260307+really6.5.20250830",
+          "Filename": "pool/main/n/ncurses-ui-libs/ncurses-ui-libs_6.6.20260307+really6.5.20250830_x86_64.deb",
+          "SHA256": "1193618e18f579eb86064e00648d80648eaec5da70c0a5b944ac1315d209d16e",
+          "Size": "35564"
+        },
+        {
+          "Package": "openssl",
+          "Version": "1:3.6.5",
+          "Filename": "pool/main/o/openssl/openssl_1:3.6.5_x86_64.deb",
+          "SHA256": "540f144592d23d35672976e175ede1b5d8cf464f153f646df5d4e6dcd8491a15",
+          "Size": "2164136"
+        },
+        {
+          "Package": "p11-kit",
+          "Version": "0.26.6",
+          "Filename": "pool/main/p/p11-kit/p11-kit_0.26.6_x86_64.deb",
+          "SHA256": "6fa55cdc0fb71c3f805a2362427d2063d319309baa4e4c3e8b243c8d8894d607",
+          "Size": "583616"
+        },
+        {
+          "Package": "pcre2",
+          "Version": "10.49",
+          "Filename": "pool/main/p/pcre2/pcre2_10.49_x86_64.deb",
+          "SHA256": "4a6f66ac12565342897ce9b5cd11ba8ce6fce1fd1a91ae679c3468d7fc2ee541",
+          "Size": "1061556"
+        },
+        {
+          "Package": "pulseaudio",
+          "Version": "17.0-5",
+          "Filename": "pool/main/p/pulseaudio/pulseaudio_17.0-5_x86_64.deb",
+          "SHA256": "1930e52ba1c15b9489eebf54dadea1719cbd0c41d9cbd51eacd575c1527ac058",
+          "Size": "915040"
+        },
+        {
+          "Package": "python",
+          "Version": "3.14.10",
+          "Filename": "pool/main/p/python/python_3.14.10_x86_64.deb",
+          "SHA256": "61e29ea9fb1b2e2f8eed7f9e7f86e4d0c16ec2941242f895ed9983fde8e1d11c",
+          "Size": "5148652"
+        },
+        {
+          "Package": "qemu-common",
+          "Version": "1:11.1.3",
+          "Filename": "pool/main/q/qemu-common/qemu-common_1:11.1.3_x86_64.deb",
+          "SHA256": "e7b208594a2091a8a0e8766f4e80d91352b6514b11233b038266eef622e9411b",
+          "Size": "21169044"
+        },
+        {
+          "Package": "qemu-system-x86-64-headless",
+          "Version": "1:11.1.3",
+          "Filename": "pool/main/q/qemu-system-x86-64-headless/qemu-system-x86-64-headless_1:11.1.3_x86_64.deb",
+          "SHA256": "988996239081936d3dc89adab5ddf09181f3ca3ef8c95acc82e4741aaa0f3853",
+          "Size": "3208960"
+        },
+        {
+          "Package": "readline",
+          "Version": "8.3.6",
+          "Filename": "pool/main/r/readline/readline_8.3.6_x86_64.deb",
+          "SHA256": "e9684798d13ede05f785315f68d3ff739563db2abef0e73db4dc9b8e17ded368",
+          "Size": "302176"
+        },
+        {
+          "Package": "resolv-conf",
+          "Version": "1.3",
+          "Filename": "pool/main/r/resolv-conf/resolv-conf_1.3_x86_64.deb",
+          "SHA256": "0fcf8c5447bc5fbb0d411a47dc5c67d2aced861227e09052fc423220291a22c7",
+          "Size": "986"
+        },
+        {
+          "Package": "speexdsp",
+          "Version": "1.2.1-1",
+          "Filename": "pool/main/s/speexdsp/speexdsp_1.2.1-1_x86_64.deb",
+          "SHA256": "9d8b3656fb666b524cd46ef6c37b3323033e7398400746fc09945dc004fb0e7f",
+          "Size": "39172"
+        },
+        {
+          "Package": "termux-licenses",
+          "Version": "2.2",
+          "Filename": "pool/main/t/termux-licenses/termux-licenses_2.2_all.deb",
+          "SHA256": "a3265cd1cf7d04754f2fb683eaf5b21918263792fd714457127900c1d6d9bcd9",
+          "Size": "52276"
+        },
+        {
+          "Package": "xorg-util-macros",
+          "Version": "1.20.2",
+          "Filename": "pool/main/x/xorg-util-macros/xorg-util-macros_1.20.2_all.deb",
+          "SHA256": "11765ad1a6f181e36f807464f7b4360593d847dce245202a393eb2ca156520d0",
+          "Size": "21948"
+        },
+        {
+          "Package": "xorgproto",
+          "Version": "2026.1",
+          "Filename": "pool/main/x/xorgproto/xorgproto_2026.1_all.deb",
+          "SHA256": "2463651143a386eba0d7baebac87ca5d2db5239d36cf38f9b2086f3c1bfdcbce",
+          "Size": "249848"
+        },
+        {
+          "Package": "zlib",
+          "Version": "1.4",
+          "Filename": "pool/main/z/zlib/zlib_1.4_x86_64.deb",
+          "SHA256": "55ab8f16e492d6ed03c2e2bf701af52cf54a313442dd7adedd3d6f3e3eba2e4f",
+          "Size": "74188"
+        },
+        {
+          "Package": "zstd",
+          "Version": "1.6.0",
+          "Filename": "pool/main/z/zstd/zstd_1.6.0_x86_64.deb",
+          "SHA256": "ca9b36002f306ce1f442867f778276eb9c3b7ce81e5f9ef61c6e03efbaf6b041",
+          "Size": "392920"
+        }
+      ]
+    },
+    "arm64-v8a": {
+      "termuxArchitecture": "aarch64",
+      "executable": "qemu-system-aarch64",
+      "indexSha256": "d03e445e1224bebf07b4b76e0821bc2d24c2647d8afab679b3f6374b6987396b",
+      "inReleaseSha256": "327c31e6a34c603dcf4c2b75bfe5f7d5f6e1dcc3e3989ee14f48cf4308faf062",
+      "packages": [
+        {
+          "Package": "abseil-cpp",
+          "Version": "20260817.0",
+          "Filename": "pool/main/a/abseil-cpp/abseil-cpp_20260817.0_aarch64.deb",
+          "SHA256": "b698963bb7096494ad928ce89cd869a53e6adf0b05f5f407b40fda9c85c6e2b0",
+          "Size": "1214712"
+        },
+        {
+          "Package": "alsa-lib",
+          "Version": "1.2.16.1",
+          "Filename": "pool/main/a/alsa-lib/alsa-lib_1.2.16.1_aarch64.deb",
+          "SHA256": "34d850de4cf6a832b638a125ac2b029a46697e7a44c66f88fb388486c93314a5",
+          "Size": "453056"
+        },
+        {
+          "Package": "argp",
+          "Version": "1.5.0-1",
+          "Filename": "pool/main/a/argp/argp_1.5.0-1_aarch64.deb",
+          "SHA256": "4096bfb8cba379efc3699e94e1cee400e72c274d734b5c1ed5f274ec42003405",
+          "Size": "21176"
+        },
+        {
+          "Package": "ca-certificates",
+          "Version": "1:2026.11.05-1",
+          "Filename": "pool/main/c/ca-certificates/ca-certificates_1:2026.11.05-1_all.deb",
+          "SHA256": "12fc350fc5ad638338b06b04835bce897615f8c93f96d30ac396cdb39b850c6b",
+          "Size": "110148"
+        },
+        {
+          "Package": "dbus",
+          "Version": "1.16.4",
+          "Filename": "pool/main/d/dbus/dbus_1.16.4_aarch64.deb",
+          "SHA256": "fff79b58f1a4d5819140ccd5b5d72bc157351285ababf0361229293a4fd69b82",
+          "Size": "428248"
+        },
+        {
+          "Package": "dtc",
+          "Version": "1.8.1",
+          "Filename": "pool/main/d/dtc/dtc_1.8.1_aarch64.deb",
+          "SHA256": "a428adaccdb5af0c53698178f915ef65d23010cf9bd98d2a4447b79dba22e20d",
+          "Size": "85696"
+        },
+        {
+          "Package": "gdbm",
+          "Version": "1.26-1",
+          "Filename": "pool/main/g/gdbm/gdbm_1.26-1_aarch64.deb",
+          "SHA256": "c378de833aae3cf41f3028491ea11836479d9833ab653edc27d0c0e0e691d5c5",
+          "Size": "150284"
+        },
+        {
+          "Package": "glib",
+          "Version": "2.90.2",
+          "Filename": "pool/main/g/glib/glib_2.90.2_aarch64.deb",
+          "SHA256": "22237d7b0df4e65a81c0bb68767ebec4fbf5769dbb2849217ecfd8bf25ed11f4",
+          "Size": "2572600"
+        },
+        {
+          "Package": "graphene",
+          "Version": "1.10.8-3",
+          "Filename": "pool/main/g/graphene/graphene_1.10.8-3_aarch64.deb",
+          "SHA256": "9b2ae32ab0a4b84f8804a6916fb4be884ccf27826e361aaffc4affbe023fc1c1",
+          "Size": "191744"
+        },
+        {
+          "Package": "gst-plugins-base",
+          "Version": "1.28.9",
+          "Filename": "pool/main/g/gst-plugins-base/gst-plugins-base_1.28.9_aarch64.deb",
+          "SHA256": "65598eb8ddb0edb2e8acd4254d0f4552c33caf34d12efad6ab7b4dd74343693c",
+          "Size": "1996404"
+        },
+        {
+          "Package": "gstreamer",
+          "Version": "1.28.9",
+          "Filename": "pool/main/g/gstreamer/gstreamer_1.28.9_aarch64.deb",
+          "SHA256": "56ff63ba8b217c3859e5feac9831661cd7e7c7b999ee1b00c6cc898f02434f0a",
+          "Size": "1345360"
+        },
+        {
+          "Package": "jack2",
+          "Version": "1.9.22-2",
+          "Filename": "pool/main/j/jack2/jack2_1.9.22-2_aarch64.deb",
+          "SHA256": "7dbdb39e94cfe52567fb86524de3303b03eb1707c82a81a1155482ccc8e9d2e8",
+          "Size": "374516"
+        },
+        {
+          "Package": "json-c",
+          "Version": "0.19",
+          "Filename": "pool/main/j/json-c/json-c_0.19_aarch64.deb",
+          "SHA256": "894fef1e1001807e862f909cd5645dbb51bc77434779124f69178efe13690655",
+          "Size": "52008"
+        },
+        {
+          "Package": "libandroid-execinfo",
+          "Version": "0.1-3",
+          "Filename": "pool/main/liba/libandroid-execinfo/libandroid-execinfo_0.1-3_aarch64.deb",
+          "SHA256": "725dd2c6da7fc96e860fcc928e18aa9fb0e85e0bdcaf4f8ce0f0654ca6860fc2",
+          "Size": "14964"
+        },
+        {
+          "Package": "libandroid-glob",
+          "Version": "0.6-3",
+          "Filename": "pool/main/liba/libandroid-glob/libandroid-glob_0.6-3_aarch64.deb",
+          "SHA256": "2276ae8adedf0db76c2f4ffc94cc4cceb2f4f5d78e021b54e2e046d1233e7826",
+          "Size": "7032"
+        },
+        {
+          "Package": "libandroid-posix-semaphore",
+          "Version": "0.1-4",
+          "Filename": "pool/main/liba/libandroid-posix-semaphore/libandroid-posix-semaphore_0.1-4_aarch64.deb",
+          "SHA256": "0efa8677a0166315ba4e685863712eba0ca0a1732827492f38226e2723730c7a",
+          "Size": "4076"
+        },
+        {
+          "Package": "libandroid-shmem",
+          "Version": "0.7",
+          "Filename": "pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_aarch64.deb",
+          "SHA256": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6",
+          "Size": "7216"
+        },
+        {
+          "Package": "libandroid-stub",
+          "Version": "30-3",
+          "Filename": "pool/main/liba/libandroid-stub/libandroid-stub_30-3_aarch64.deb",
+          "SHA256": "88c7f4ba78a5eb57eafc2f1102ceea562a156fe7346528ca35c771eb0927fefc",
+          "Size": "27348"
+        },
+        {
+          "Package": "libandroid-support",
+          "Version": "29-1",
+          "Filename": "pool/main/liba/libandroid-support/libandroid-support_29-1_aarch64.deb",
+          "SHA256": "f2f145d6135ad4843ac9670153be3e3944dc1e6f1736d46d2306c28f2b86f517",
+          "Size": "10880"
+        },
+        {
+          "Package": "libandroid-sysv-semaphore",
+          "Version": "0.1-1",
+          "Filename": "pool/main/liba/libandroid-sysv-semaphore/libandroid-sysv-semaphore_0.1-1_aarch64.deb",
+          "SHA256": "c3369a92814690d56278d0455ae6df7bf2ad7678ae9543e86d1e3aa433937c69",
+          "Size": "3568"
+        },
+        {
+          "Package": "libbz2",
+          "Version": "1.0.8-8",
+          "Filename": "pool/main/libb/libbz2/libbz2_1.0.8-8_aarch64.deb",
+          "SHA256": "4335d7f060650b0aabef545d1334c2f9f280223d5962e13c24a00ec934b794ba",
+          "Size": "26116"
+        },
+        {
+          "Package": "libc++",
+          "Version": "30",
+          "Filename": "pool/main/libc/libc++/libc++_30_aarch64.deb",
+          "SHA256": "53d0b84a7ba7459024257cb94d5b136fe13ef858567f65a8064b35950799f2ca",
+          "Size": "341604"
+        },
+        {
+          "Package": "libcap-ng",
+          "Version": "2:0.9.6",
+          "Filename": "pool/main/libc/libcap-ng/libcap-ng_2:0.9.6_aarch64.deb",
+          "SHA256": "68e8e2a95e5ac061e40717654fe2014042d88bfa2b85455713ed992eb694f89d",
+          "Size": "57472"
+        },
+        {
+          "Package": "libcrypt",
+          "Version": "0.2-6",
+          "Filename": "pool/main/libc/libcrypt/libcrypt_0.2-6_aarch64.deb",
+          "SHA256": "6c283eed576b98cc3568f99638156f8588f77d979579d03bef8683d6eb8601e1",
+          "Size": "8880"
+        },
+        {
+          "Package": "libcurl",
+          "Version": "8.23.0",
+          "Filename": "pool/main/libc/libcurl/libcurl_8.23.0_aarch64.deb",
+          "SHA256": "2011bb9709261bb3d5ecaa6672faa333be14cf48ad4af37031e3e365309557ac",
+          "Size": "1043340"
+        },
+        {
+          "Package": "libdb",
+          "Version": "18.1.40-6",
+          "Filename": "pool/main/libd/libdb/libdb_18.1.40-6_aarch64.deb",
+          "SHA256": "60bfb4e8bed834d334806f39aae27ffc11ab819f2da2f9abb7a3b2d37970a532",
+          "Size": "496988"
+        },
+        {
+          "Package": "libdw",
+          "Version": "0.197",
+          "Filename": "pool/main/libd/libdw/libdw_0.197_aarch64.deb",
+          "SHA256": "6c25c05cbba67671238434306ca5e55444d29c9b425600a710618a189d4f9ebb",
+          "Size": "216444"
+        },
+        {
+          "Package": "libelf",
+          "Version": "0.197",
+          "Filename": "pool/main/libe/libelf/libelf_0.197_aarch64.deb",
+          "SHA256": "c47ee2eee8450274f22218307b31471b76113b2825d3c69a5fdc47180cd68c13",
+          "Size": "124228"
+        },
+        {
+          "Package": "libevent",
+          "Version": "2.1.13",
+          "Filename": "pool/main/libe/libevent/libevent_2.1.13_aarch64.deb",
+          "SHA256": "cf99e8e6cd1218c0e4956d2ee69efbb26520211b3e03407463eac9016fe55f25",
+          "Size": "202848"
+        },
+        {
+          "Package": "libexpat",
+          "Version": "2.11.0",
+          "Filename": "pool/main/libe/libexpat/libexpat_2.11.0_aarch64.deb",
+          "SHA256": "ac744cb7cd047997da4410ca11d356ca9c952aa474b14a0032414d5677e0fbf1",
+          "Size": "106144"
+        },
+        {
+          "Package": "libffi",
+          "Version": "3.8.2",
+          "Filename": "pool/main/libf/libffi/libffi_3.8.2_aarch64.deb",
+          "SHA256": "24e32ef321a2c8969cece066422d94928b1062f8fb4ed44b2e3d55bd85903863",
+          "Size": "36100"
+        },
+        {
+          "Package": "libflac",
+          "Version": "1.5.0-1",
+          "Filename": "pool/main/libf/libflac/libflac_1.5.0-1_aarch64.deb",
+          "SHA256": "d1d6fcac6fd6d15c36f34464cb01d5e2140e321d8448dfc396cd7eb1536b1f6c",
+          "Size": "202828"
+        },
+        {
+          "Package": "libgmp",
+          "Version": "6.3.0-2",
+          "Filename": "pool/main/libg/libgmp/libgmp_6.3.0-2_aarch64.deb",
+          "SHA256": "5a3c1325638946ca212ddcb89bffb2c4459b4c90757d6e69f820e176534037fa",
+          "Size": "328368"
+        },
+        {
+          "Package": "libgnutls",
+          "Version": "3.8.14",
+          "Filename": "pool/main/libg/libgnutls/libgnutls_3.8.14_aarch64.deb",
+          "SHA256": "bbbf782408c4e006fab1267e75ad1f1380ecffba1075c830362566b2a6dd77f5",
+          "Size": "780168"
+        },
+        {
+          "Package": "libiconv",
+          "Version": "1.19.1",
+          "Filename": "pool/main/libi/libiconv/libiconv_1.19.1_aarch64.deb",
+          "SHA256": "a1c6323eff4f660e16ae6f5832356444b3269c19a4f61146355a49e7c4be5ed1",
+          "Size": "562252"
+        },
+        {
+          "Package": "libidn2",
+          "Version": "2.3.8-1",
+          "Filename": "pool/main/libi/libidn2/libidn2_2.3.8-1_aarch64.deb",
+          "SHA256": "a450a1ba25759ebf78738484a3efee316c51a1fe7bafb0b01a68e2c058a91020",
+          "Size": "105308"
+        },
+        {
+          "Package": "libjpeg-turbo",
+          "Version": "3.2.1",
+          "Filename": "pool/main/libj/libjpeg-turbo/libjpeg-turbo_3.2.1_aarch64.deb",
+          "SHA256": "3e46721f2fbb10d5f53a45b99e2549d18a34ca3751aa4b704b3404fcdea5f8e7",
+          "Size": "455972"
+        },
+        {
+          "Package": "libltdl",
+          "Version": "2.6.2",
+          "Filename": "pool/main/libl/libltdl/libltdl_2.6.2_aarch64.deb",
+          "SHA256": "7b4643fe9d0ab42c0c3c8a1018640816bdb43d422f2268a5e4ea80675624f539",
+          "Size": "17996"
+        },
+        {
+          "Package": "liblz4",
+          "Version": "1.11.1",
+          "Filename": "pool/main/libl/liblz4/liblz4_1.11.1_aarch64.deb",
+          "SHA256": "314d1a014f74f667122afd5e6b5d7541fbb60fab9e28086382568f8140b523ed",
+          "Size": "93908"
+        },
+        {
+          "Package": "liblzma",
+          "Version": "5.8.4",
+          "Filename": "pool/main/libl/liblzma/liblzma_5.8.4_aarch64.deb",
+          "SHA256": "44e95e6e60dddb3705e60a344a4f009a1085a210797342b721eaff41b44033c0",
+          "Size": "194796"
+        },
+        {
+          "Package": "liblzo",
+          "Version": "2.10-5",
+          "Filename": "pool/main/libl/liblzo/liblzo_2.10-5_aarch64.deb",
+          "SHA256": "b8a6d232d592dcd6529589c817927cca3254f3ab40a85fce873d997ace7d1ca2",
+          "Size": "69560"
+        },
+        {
+          "Package": "libmp3lame",
+          "Version": "4.0-1",
+          "Filename": "pool/main/libm/libmp3lame/libmp3lame_4.0-1_aarch64.deb",
+          "SHA256": "59f70ad8885578063bcbea3b11e74fb69e2416ca036b47aa255c1fa4f074565e",
+          "Size": "98588"
+        },
+        {
+          "Package": "libmpg123",
+          "Version": "1.33.7",
+          "Filename": "pool/main/libm/libmpg123/libmpg123_1.33.7_aarch64.deb",
+          "SHA256": "883b104faae53820b2e758363300ccf99e28f627a263d766af61ae07b73b07b3",
+          "Size": "175116"
+        },
+        {
+          "Package": "libnettle",
+          "Version": "4.0+really3.10.2",
+          "Filename": "pool/main/libn/libnettle/libnettle_4.0+really3.10.2_aarch64.deb",
+          "SHA256": "f2d2a84083e66beab642e88496eb16976ccdb12d1278466e687f01431db8a5fb",
+          "Size": "405656"
+        },
+        {
+          "Package": "libnfs",
+          "Version": "8.1.0",
+          "Filename": "pool/main/libn/libnfs/libnfs_8.1.0_aarch64.deb",
+          "SHA256": "f64bf90ea073cd0beb8edca970e0af327821d2c206fb984cbe706e2f59743580",
+          "Size": "191220"
+        },
+        {
+          "Package": "libnghttp2",
+          "Version": "1.71.0",
+          "Filename": "pool/main/libn/libnghttp2/libnghttp2_1.71.0_aarch64.deb",
+          "SHA256": "ae33e7b21e0636be8686b9b13a20e31267f047f69cb26b4befd70c9a9bae221e",
+          "Size": "96396"
+        },
+        {
+          "Package": "libnghttp3",
+          "Version": "1.19.0",
+          "Filename": "pool/main/libn/libnghttp3/libnghttp3_1.19.0_aarch64.deb",
+          "SHA256": "8bb6fa31f9281cd48047ec9a571cadf153538f5b38f0203ad7a4e221344b14a6",
+          "Size": "69948"
+        },
+        {
+          "Package": "libngtcp2",
+          "Version": "1.26.0",
+          "Filename": "pool/main/libn/libngtcp2/libngtcp2_1.26.0_aarch64.deb",
+          "SHA256": "8225ecde58104ef5aa234fa54a1bea5051a8a9ef2937e5ba996b3e8dda68c8eb",
+          "Size": "175116"
+        },
+        {
+          "Package": "libogg",
+          "Version": "1.3.6-1",
+          "Filename": "pool/main/libo/libogg/libogg_1.3.6-1_aarch64.deb",
+          "SHA256": "4f1700a532f251ad3600f44f88cd764f1f6b0542d3343391117944b47a92802d",
+          "Size": "188636"
+        },
+        {
+          "Package": "libopus",
+          "Version": "1.6.1",
+          "Filename": "pool/main/libo/libopus/libopus_1.6.1_aarch64.deb",
+          "SHA256": "005a9335ce0ec0f510bbe6e0229c901d6f920cc375fcda56461e96cef70f8ff0",
+          "Size": "191480"
+        },
+        {
+          "Package": "liborc",
+          "Version": "0.4.44",
+          "Filename": "pool/main/libo/liborc/liborc_0.4.44_aarch64.deb",
+          "SHA256": "dee3318c3ad68cc437d6808c3f88ae89b381f4dc3b81f818f5066274924e02d3",
+          "Size": "284712"
+        },
+        {
+          "Package": "libpixman",
+          "Version": "0.46.4-1",
+          "Filename": "pool/main/libp/libpixman/libpixman_0.46.4-1_aarch64.deb",
+          "SHA256": "364b8c82ff68f8513930e5d413459fb7c52eccc7ba75a97a8c5a38760eee8d33",
+          "Size": "157712"
+        },
+        {
+          "Package": "libpng",
+          "Version": "1.6.59",
+          "Filename": "pool/main/libp/libpng/libpng_1.6.59_aarch64.deb",
+          "SHA256": "32d61f0b1a60cf7283aa3a80e288737493df2c6b84c8c749606b77c94a10f2b2",
+          "Size": "195892"
+        },
+        {
+          "Package": "libsamplerate",
+          "Version": "0.2.2-4",
+          "Filename": "pool/main/libs/libsamplerate/libsamplerate_0.2.2-4_aarch64.deb",
+          "SHA256": "521d46cc49557c00b2d5c107da1f86f0cdda8a3a3b84bd9958bd7fc52bec2dae",
+          "Size": "973440"
+        },
+        {
+          "Package": "libsasl",
+          "Version": "2.1.28-3",
+          "Filename": "pool/main/libs/libsasl/libsasl_2.1.28-3_aarch64.deb",
+          "SHA256": "66fcdac6fdd708534dc3df00f917fe24a1a99bde868b5085d93861e44ea6dd6e",
+          "Size": "95380"
+        },
+        {
+          "Package": "libslirp",
+          "Version": "4.9.7",
+          "Filename": "pool/main/libs/libslirp/libslirp_4.9.7_aarch64.deb",
+          "SHA256": "2dd2c214bcec7f1125fcd4040606e72768c38010ba87ed9c0365193616ba7ada",
+          "Size": "56168"
+        },
+        {
+          "Package": "libsndfile",
+          "Version": "1.2.2-3",
+          "Filename": "pool/main/libs/libsndfile/libsndfile_1.2.2-3_aarch64.deb",
+          "SHA256": "1e1fb77b14ec26f3ff6ded069e9ec816ab7535ae5d074122c6727b0f59d8aff3",
+          "Size": "223576"
+        },
+        {
+          "Package": "libsoxr",
+          "Version": "0.1.3-8",
+          "Filename": "pool/main/libs/libsoxr/libsoxr_0.1.3-8_aarch64.deb",
+          "SHA256": "a1c5f66aae3b9900e9a492b43901b2b98586870c7905feb9f3c835cc9af464be",
+          "Size": "282436"
+        },
+        {
+          "Package": "libspice-protocol",
+          "Version": "0.14.5",
+          "Filename": "pool/main/libs/libspice-protocol/libspice-protocol_0.14.5_all.deb",
+          "SHA256": "a90a7e66b36b9c89f652e10a3a48957e403c3abf3d5b1ae57324cc1cba19a8f8",
+          "Size": "18488"
+        },
+        {
+          "Package": "libspice-server",
+          "Version": "0.16.0-1",
+          "Filename": "pool/main/libs/libspice-server/libspice-server_0.16.0-1_aarch64.deb",
+          "SHA256": "98efa86c8d382ee742eda5eb1d73b12d831a6a518a16a62f9d5d33a44508cdda",
+          "Size": "271672"
+        },
+        {
+          "Package": "libsqlite",
+          "Version": "3.54.1-1",
+          "Filename": "pool/main/libs/libsqlite/libsqlite_3.54.1-1_aarch64.deb",
+          "SHA256": "661fb995f7215845007b222a85266ae99d9443e87e0604f8677edfd738e6b81a",
+          "Size": "768888"
+        },
+        {
+          "Package": "libssh",
+          "Version": "0.12.2",
+          "Filename": "pool/main/libs/libssh/libssh_0.12.2_aarch64.deb",
+          "SHA256": "05cfb1d6f70e9b316f1eac7a5ec9139f884e644d6d91e668e9ca49716aad8ff0",
+          "Size": "234304"
+        },
+        {
+          "Package": "libssh2",
+          "Version": "1.11.1-2",
+          "Filename": "pool/main/libs/libssh2/libssh2_1.11.1-2_aarch64.deb",
+          "SHA256": "1add4e0a926b848814e7e2f1817ea28b123c54cabd5bbc4e5cfd65291cbad84e",
+          "Size": "219220"
+        },
+        {
+          "Package": "libtasn1",
+          "Version": "4.21.0",
+          "Filename": "pool/main/libt/libtasn1/libtasn1_4.21.0_aarch64.deb",
+          "SHA256": "1d02de3a7e5ef4ff7d893597091176b8ddf135f1ddfacff951f76c18711a7342",
+          "Size": "101344"
+        },
+        {
+          "Package": "libtheora",
+          "Version": "1.2.0-1",
+          "Filename": "pool/main/libt/libtheora/libtheora_1.2.0-1_aarch64.deb",
+          "SHA256": "9d4582f14f71df7a48101ee05297a57a898654ead55ef10ca4d73e254151b1e8",
+          "Size": "132020"
+        },
+        {
+          "Package": "libunbound",
+          "Version": "1.26.2",
+          "Filename": "pool/main/libu/libunbound/libunbound_1.26.2_aarch64.deb",
+          "SHA256": "0eb26a2c0a3f4c80cf11350b4dee4f53f1d154b58bf76555ee13255213178571",
+          "Size": "388384"
+        },
+        {
+          "Package": "libunistring",
+          "Version": "1.5",
+          "Filename": "pool/main/libu/libunistring/libunistring_1.5_aarch64.deb",
+          "SHA256": "8853ca1421d6472046a0683d53084b26db1caa50a3aa2bf6422a1276c7dba69b",
+          "Size": "574056"
+        },
+        {
+          "Package": "libusb",
+          "Version": "1.0.30",
+          "Filename": "pool/main/libu/libusb/libusb_1.0.30_aarch64.deb",
+          "SHA256": "b8db930e478bf30e91a709da9ad2560b600a30ab2c0afd05d611b5d962a21b31",
+          "Size": "59824"
+        },
+        {
+          "Package": "libusbredir",
+          "Version": "0.15.0",
+          "Filename": "pool/main/libu/libusbredir/libusbredir_0.15.0_aarch64.deb",
+          "SHA256": "30577db7759dbc165b82ed089426da192e4eb278ea204e1216fe34e386b705c3",
+          "Size": "35852"
+        },
+        {
+          "Package": "libvorbis",
+          "Version": "1.3.7-4",
+          "Filename": "pool/main/libv/libvorbis/libvorbis_1.3.7-4_aarch64.deb",
+          "SHA256": "6bfd70c4b570b85594bd06116b75a6f8109ec58cbc123e938b630a6eefdedf4e",
+          "Size": "261740"
+        },
+        {
+          "Package": "libwebrtc-audio-processing",
+          "Version": "2.1",
+          "Filename": "pool/main/libw/libwebrtc-audio-processing/libwebrtc-audio-processing_2.1_aarch64.deb",
+          "SHA256": "42d9e12e057dbbbbd513cab67a902ebff0f991c4b1cfe58a42374ab18c278be0",
+          "Size": "325772"
+        },
+        {
+          "Package": "libx11",
+          "Version": "1.8.14",
+          "Filename": "pool/main/libx/libx11/libx11_1.8.14_aarch64.deb",
+          "SHA256": "c5206ee9cc26a63985d110b57bc24f23c7c97505e6100c4d6a8547a1aeed5532",
+          "Size": "1910512"
+        },
+        {
+          "Package": "libxau",
+          "Version": "1.0.12-2",
+          "Filename": "pool/main/libx/libxau/libxau_1.0.12-2_aarch64.deb",
+          "SHA256": "2d86bed61ce89dd8fdb55e565aede10155f2ce3adaccb61d5f1375aec3314083",
+          "Size": "9120"
+        },
+        {
+          "Package": "libxcb",
+          "Version": "1.17.0-1",
+          "Filename": "pool/main/libx/libxcb/libxcb_1.17.0-1_aarch64.deb",
+          "SHA256": "191c3642b6a8c754bc75b69b94a81858ecb5f18766dc085aff55559b8087ad34",
+          "Size": "913948"
+        },
+        {
+          "Package": "libxdmcp",
+          "Version": "1.1.5-2",
+          "Filename": "pool/main/libx/libxdmcp/libxdmcp_1.1.5-2_aarch64.deb",
+          "SHA256": "caea0cf5c0028af0840774094b8900ef7afffd8f9bbd7b1abfbe66851f0d6077",
+          "Size": "24460"
+        },
+        {
+          "Package": "libxext",
+          "Version": "1.3.7",
+          "Filename": "pool/main/libx/libxext/libxext_1.3.7_aarch64.deb",
+          "SHA256": "6e98a24e0d1996d25f7db8d70ecae02cfe5fc146343428a065149003454c7fc9",
+          "Size": "98008"
+        },
+        {
+          "Package": "libxi",
+          "Version": "1.8.4",
+          "Filename": "pool/main/libx/libxi/libxi_1.8.4_aarch64.deb",
+          "SHA256": "58a19a659db5a90c1557ab5c2ddd7b1c3449898e2dcbf6ffbc14ec02db56cba1",
+          "Size": "141860"
+        },
+        {
+          "Package": "libxv",
+          "Version": "1.0.13-1",
+          "Filename": "pool/main/libx/libxv/libxv_1.0.13-1_aarch64.deb",
+          "SHA256": "b780f484f05c3e83e694ac819bf62b941473cdf1307fcd48157e3829353b9a00",
+          "Size": "31692"
+        },
+        {
+          "Package": "ncurses",
+          "Version": "6.6.20260307+really6.5.20250830",
+          "Filename": "pool/main/n/ncurses/ncurses_6.6.20260307+really6.5.20250830_aarch64.deb",
+          "SHA256": "f44bbfdc3d42ec0217bffa978309390e59cea5a48a9a83226d4a496c42ad0b99",
+          "Size": "557792"
+        },
+        {
+          "Package": "ncurses-ui-libs",
+          "Version": "6.6.20260307+really6.5.20250830",
+          "Filename": "pool/main/n/ncurses-ui-libs/ncurses-ui-libs_6.6.20260307+really6.5.20250830_aarch64.deb",
+          "SHA256": "7393f369009be189b3d4ec1f9b16ebd57621d6a1b22949ae07685573950d1f37",
+          "Size": "32940"
+        },
+        {
+          "Package": "openssl",
+          "Version": "1:3.6.5",
+          "Filename": "pool/main/o/openssl/openssl_1:3.6.5_aarch64.deb",
+          "SHA256": "a2fb7856875e63ef6b90442752e05974813372c3ca86d2513a78ea43c67a0f8b",
+          "Size": "2482764"
+        },
+        {
+          "Package": "p11-kit",
+          "Version": "0.26.6",
+          "Filename": "pool/main/p/p11-kit/p11-kit_0.26.6_aarch64.deb",
+          "SHA256": "e6a305edbfcf6a907bd1f09bedbcbbb06ca7784116300bd297a769c971595424",
+          "Size": "483852"
+        },
+        {
+          "Package": "pcre2",
+          "Version": "10.49",
+          "Filename": "pool/main/p/pcre2/pcre2_10.49_aarch64.deb",
+          "SHA256": "c27995e5f52b8ecc9b8b3e662eb08e49f82a18bfd3f34343936acc7b23964724",
+          "Size": "1001320"
+        },
+        {
+          "Package": "pulseaudio",
+          "Version": "17.0-5",
+          "Filename": "pool/main/p/pulseaudio/pulseaudio_17.0-5_aarch64.deb",
+          "SHA256": "4e110e32007fee5aaf67cfa2f35ae67c11ed53f45da857d0def426e2ca66f8c8",
+          "Size": "848676"
+        },
+        {
+          "Package": "python",
+          "Version": "3.14.10",
+          "Filename": "pool/main/p/python/python_3.14.10_aarch64.deb",
+          "SHA256": "1a5a300c8d844f2c18a3bb61cafbffb2e93fba9a7106ebe967f06c9628d1e434",
+          "Size": "4893180"
+        },
+        {
+          "Package": "qemu-common",
+          "Version": "1:11.1.3",
+          "Filename": "pool/main/q/qemu-common/qemu-common_1:11.1.3_aarch64.deb",
+          "SHA256": "4ec342d50d07a591911ec30e35b0edf61d0bc111a42fd881e53448123f807356",
+          "Size": "21130936"
+        },
+        {
+          "Package": "qemu-system-aarch64-headless",
+          "Version": "1:11.1.3",
+          "Filename": "pool/main/q/qemu-system-aarch64-headless/qemu-system-aarch64-headless_1:11.1.3_aarch64.deb",
+          "SHA256": "64d63f37884ee8ae07bf91e144b8d06955027ad69b339a4ecdd888d391bd8cd3",
+          "Size": "3748512"
+        },
+        {
+          "Package": "readline",
+          "Version": "8.3.6",
+          "Filename": "pool/main/r/readline/readline_8.3.6_aarch64.deb",
+          "SHA256": "616cc73009bc0223f61caed8dd09455714455aa5ea5e180126e2f69c4c775136",
+          "Size": "294164"
+        },
+        {
+          "Package": "resolv-conf",
+          "Version": "1.3",
+          "Filename": "pool/main/r/resolv-conf/resolv-conf_1.3_aarch64.deb",
+          "SHA256": "ab541abac8e0c81709cd7ca4a02bcfa0d60ba1f4bfe7fd6dce4a694a4a9dfffa",
+          "Size": "976"
+        },
+        {
+          "Package": "speexdsp",
+          "Version": "1.2.1-1",
+          "Filename": "pool/main/s/speexdsp/speexdsp_1.2.1-1_aarch64.deb",
+          "SHA256": "21cd5d122a8d24dffb9b2926dff7059f8f42cde7c5a91f27ea5c9b4f40356be0",
+          "Size": "37332"
+        },
+        {
+          "Package": "termux-licenses",
+          "Version": "2.2",
+          "Filename": "pool/main/t/termux-licenses/termux-licenses_2.2_all.deb",
+          "SHA256": "a3265cd1cf7d04754f2fb683eaf5b21918263792fd714457127900c1d6d9bcd9",
+          "Size": "52276"
+        },
+        {
+          "Package": "xorg-util-macros",
+          "Version": "1.20.2",
+          "Filename": "pool/main/x/xorg-util-macros/xorg-util-macros_1.20.2_all.deb",
+          "SHA256": "11765ad1a6f181e36f807464f7b4360593d847dce245202a393eb2ca156520d0",
+          "Size": "21948"
+        },
+        {
+          "Package": "xorgproto",
+          "Version": "2026.1",
+          "Filename": "pool/main/x/xorgproto/xorgproto_2026.1_all.deb",
+          "SHA256": "2463651143a386eba0d7baebac87ca5d2db5239d36cf38f9b2086f3c1bfdcbce",
+          "Size": "249848"
+        },
+        {
+          "Package": "zlib",
+          "Version": "1.4",
+          "Filename": "pool/main/z/zlib/zlib_1.4_aarch64.deb",
+          "SHA256": "e3027565ae50bcd8ba5113c988b589754ae192c9cc3e6afbe3e4ed7c06b2598e",
+          "Size": "63780"
+        },
+        {
+          "Package": "zstd",
+          "Version": "1.6.0",
+          "Filename": "pool/main/z/zstd/zstd_1.6.0_aarch64.deb",
+          "SHA256": "c487af7d68664585cc5187330acc7a7a054614cb742fcbb1d8a62e214bb3368a",
+          "Size": "321312"
+        }
+      ]
+    }
+  }
+}

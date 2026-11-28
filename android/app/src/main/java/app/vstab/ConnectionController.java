@@ -69,6 +69,9 @@ final class ConnectionController {
         final String origin, url, host, user, version, serverVersion, home, folder, savedHostId;
         final int remotePort, sshPort;
         final boolean localRuntime;
+        String environmentProvider = "ssh";
+        String environmentId = "";
+        boolean directLoopback;
         final List<String> cookies;
         Ready(String origin, String url, Profile profile, String version, String serverVersion,
               String home, String folder, int remotePort, List<String> cookies) {

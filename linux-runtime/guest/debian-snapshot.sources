@@ -1,0 +1,15 @@
+# Build inputs only. Package signatures remain mandatory; only expired snapshot
+# metadata dates are allowed. The guest restores normal update sources afterward.
+Types: deb
+URIs: http://snapshot.debian.org/archive/debian/20261128T084314Z/
+Suites: trixie trixie-updates
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+Check-Valid-Until: no
+
+Types: deb
+URIs: http://snapshot.debian.org/archive/debian-security/20261128T112414Z/
+Suites: trixie-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+Check-Valid-Until: no

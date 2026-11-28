@@ -128,9 +128,6 @@ file in it is answered for. Four are:
     Ruby pack is. Every file in it is answered for: paths.h is rewritten, and
     no binary in it names the path (checked on libLLVM, libclang-cpp, the
     driver, lld and the llvm tools).
-  * the Codex asset pack, swept by download-codex.sh once it has placed the
-    pack. No Gradle task sweeps it again at packaging time, as the Ruby and
-    C/C++ tasks do theirs.
 
 The Python stdlib is deliberately not one of them. Three files under it name the
 path in a `#!` line rather than as a default they hand to execve, none of them

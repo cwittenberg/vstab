@@ -51,13 +51,6 @@
           "Size": "969908"
         },
         {
-          "Package": "codex",
-          "Version": "0.172.0",
-          "Filename": "pool/main/c/codex/codex_0.172.0_aarch64.deb",
-          "SHA256": "5998bb3ec96eef82c29c4f9a17f996dc5736d784d286b94df0f0ba9cf7d364c1",
-          "Size": "92582720"
-        },
-        {
           "Package": "readline",
           "Version": "8.3.6",
           "Filename": "pool/main/r/readline/readline_8.3.6_aarch64.deb",
@@ -273,13 +266,6 @@
           "Filename": "pool/main/o/openssh/openssh_10.6p2_x86_64.deb",
           "SHA256": "395ba9709d66727bc5e7fabc6ccb2bd93dfff99389fe4bc629ba1098c01261be",
           "Size": "1012140"
-        },
-        {
-          "Package": "codex",
-          "Version": "0.172.0",
-          "Filename": "pool/main/c/codex/codex_0.172.0_x86_64.deb",
-          "SHA256": "7dd121b01311d87f9b910c4410136a76aa59eb506c65370eec081e77e4135758",
-          "Size": "106522124"
         },
         {
           "Package": "readline",

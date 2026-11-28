@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / '.local/android-runtime'
 REPO = 'https://packages-cf.termux.dev/apt/termux-main'
 ARCHES = {'arm64-v8a': 'aarch64', 'x86_64': 'x86_64'}
-PACKAGES = ['nodejs-lts', 'npm', 'bash', 'git', 'ripgrep', 'openssh', 'codex', 'readline', 'ncurses',
+PACKAGES = ['nodejs-lts', 'npm', 'bash', 'git', 'ripgrep', 'openssh', 'readline', 'ncurses',
     'libiconv', 'libandroid-support', 'libcurl', 'openssl', 'zlib', 'pcre2',
     'libexpat', 'libnghttp2', 'libnghttp3', 'libngtcp2', 'libssh2',
     'c-ares', 'libicu', 'libc++', 'libsqlite', 'ca-certificates', 'termux-licenses',
@@ -104,16 +104,13 @@ def prepare_abi(abi, info):
     executables = {'node': 'libnode.so', 'bash': 'libbash.so',
                    'git': 'libgit.so', 'rg': 'librg.so',
                    'ssh': 'libopenssh-client.so', 'ssh-keygen': 'libopenssh-keygen.so',
-                   'ssh-agent': 'libopenssh-agent.so', 'ssh-add': 'libopenssh-add.so',
-                   'codex': 'libcodex.so', 'codex-code-mode-host': 'libcodex-modehost.so'}
+                   'ssh-agent': 'libopenssh-agent.so', 'ssh-add': 'libopenssh-add.so'}
     records = {}
     for name, filename in executables.items():
         source = prefix / 'bin' / name
         copy_file(source, jni / filename)
         (jni / filename).chmod(0o755)
         records[name] = filename
-    subprocess.run(['python3', str(ROOT / 'native-runtime/patch-codex-paths.py'),
-                    str(jni / 'libcodex.so')], check=True)
     helper = prefix / 'libexec/git-core/git-remote-http'
     if helper.exists():
         copy_file(helper, jni / 'libgit-remote-curl.so')
@@ -132,7 +129,7 @@ def prepare_abi(abi, info):
             # Ship each library once under its actual loader name, avoiding
             # triplicate ICU data under the .so/.so.79/.so.79.1 aliases.
             copy_file(source, usr / 'lib' / (match[1] if match else source.name))
-    for name in ['terminfo', 'git-core', 'licenses', 'doc/nodejs-lts', 'doc/openssh', 'doc/codex']:
+    for name in ['terminfo', 'git-core', 'licenses', 'doc/nodejs-lts', 'doc/openssh']:
         source = prefix / 'share' / name
         if source.exists():
             shutil.copytree(source, usr / 'share' / name, dirs_exist_ok=True, symlinks=False)

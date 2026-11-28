@@ -51,7 +51,8 @@ final class SshPortForwards {
 
     private static boolean isLocalHost(String host) {
         return "127.0.0.11".equals(host) || "127.0.0.12".equals(host)
-                || "127.0.0.13".equals(host) || "127.0.0.14".equals(host);
+                || "127.0.0.13".equals(host) || "127.0.0.14".equals(host)
+                || "127.0.0.21".equals(host);
     }
 
     synchronized Forward forward(String requestedHost, int remotePort, Integer requestedLocalPort) throws Exception {

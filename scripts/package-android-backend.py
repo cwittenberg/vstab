@@ -53,7 +53,6 @@ def main():
     spdlog=backend/'lib/vscode/node_modules/@vscode/spdlog/index.js'
     shutil.copyfile(ROOT/'native-runtime/vendor/spdlog.js',spdlog)
     shutil.copyfile(ROOT/'native-runtime/runtime-probe.cjs',backend/'vstab-runtime-probe.cjs')
-    shutil.copyfile(ROOT/'native-runtime/codex-extension-runtime.cjs',backend/'vstab-codex-extension-runtime.cjs')
     shutil.copyfile(ROOT/'native-runtime/vendor/VSCodroid-LICENSE.txt',backend/'VSCodroid-LICENSE.txt')
     removed=[]
     # Native machine code lives solely in APK nativeLibraryDir. Incompatible
@@ -106,11 +105,11 @@ def main():
         'nodeExecutable':'libnode.so','bashExecutable':'libbash.so',
         'backendAsset':'local-runtime/backend.zip','backendSha256':sha(destination),
         'backendEntry':'out/node/entry.js',
-        'nodeArguments':['--require','{backend}/vstab-codex-extension-runtime.cjs'],
+        'nodeArguments':[],
         'symlinks':{'node':'libnode.so','bash':'libbash.so','git':'libgit.so','rg':'librg.so',
                     'npm':'libnpm.so','npx':'libnpx.so','ssh':'libssh.so',
                     'ssh-keygen':'libssh-keygen.so','ssh-agent':'libssh-agent.so',
-                    'ssh-add':'libssh-add.so','codex':'libcodex.so'},
+                    'ssh-add':'libssh-add.so'},
         'usrLinks':{**{'lib/git-core/git-remote-'+protocol:'libgit-remote-curl.so'
                     for protocol in ['http','https','ftp','ftps']},
                     'lib/git-core/git-sh-i18n--envsubst':'libgit-envsubst.so'},
@@ -124,7 +123,6 @@ def main():
                        'GIT_SSL_CAINFO':'{usr}/etc/tls/cert.pem',
                        'GIT_EXEC_PATH':'{usr}/lib/git-core',
                        'GIT_TEMPLATE_DIR':'{usr}/share/git-core/templates',
-                       'VSTAB_CODEX_EXECUTABLE':'{nativeLibDir}/libcodex.so',
                        'TERMINFO':'{usr}/share/terminfo',
                        'NODE_EXTRA_CA_CERTS':'{usr}/etc/tls/cert.pem'}})
     manifest['addonLinks']={

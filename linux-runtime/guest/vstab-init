@@ -1,0 +1,37 @@
+#!/bin/busybox sh
+# PID 1 after the ordinary Linux initramfs mounted the persistent ext4 disk.
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+mountpoint -q /proc || mount -t proc proc /proc
+if [ ! -e /etc/mtab ] && [ ! -L /etc/mtab ]; then ln -s /proc/self/mounts /etc/mtab; fi
+mountpoint -q /sys || mount -t sysfs sysfs /sys
+mountpoint -q /dev || mount -t devtmpfs devtmpfs /dev
+mkdir -p /dev/pts /dev/shm /run/vstab /run/sshd /tmp /mnt/android
+mountpoint -q /dev/pts || mount -t devpts -o gid=5,mode=620 devpts /dev/pts
+mountpoint -q /dev/shm || mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /dev/shm
+mountpoint -q /run || mount -t tmpfs -o mode=755,nosuid,nodev tmpfs /run
+mkdir -p /run/vstab /run/sshd /run/vstab-bootstrap
+chmod 1777 /tmp
+/bin/busybox hostname vstab-linux
+modprobe fuse 2>/dev/null || true
+modprobe 9pnet_virtio 2>/dev/null || true
+modprobe virtio_net 2>/dev/null || true
+ip link set lo up
+for interface in /sys/class/net/*; do
+    interface=${interface##*/}
+    [ "$interface" = lo ] && continue
+    ip link set "$interface" up
+    ip address replace 10.0.2.15/24 dev "$interface"
+    ip route replace default via 10.0.2.2 dev "$interface"
+    break
+done
+printf 'nameserver 10.0.2.3\n' > /etc/resolv.conf
+attempt=0
+until mount -t 9p -o trans=virtio,version=9p2000.L,ro vstab-bootstrap /run/vstab-bootstrap; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge 30 ]; then
+        echo 'VSTAB_LINUX_ERROR {"schema":1,"code":"bootstrap_unavailable"}'
+        exec /bin/busybox sh
+    fi
+    sleep 1
+done
+exec /opt/code-server/lib/node /usr/local/lib/vstab/supervisor.cjs

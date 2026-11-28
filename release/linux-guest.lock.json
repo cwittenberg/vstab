@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "serverVersion": "4.146.0",
+  "codeVersion": "1.146.0",
+  "debianSnapshot": {
+    "debian": "20261128T084314Z",
+    "debianSecurity": "20261128T112414Z",
+    "signedReleaseSha256": {
+      "trixie": "bfacad4ca61899ce20d4a0d439f29339f66541561b67506364efb88e27dee870",
+      "trixie-updates": "db159a4a03f75e0b43c419dcf5c2418a9be15e787a132262016524f084ad0113",
+      "trixie-security": "a3731d88c83190df1f0387f1d95ec005ddefe04d54ba0b5bd18f8c2b34a679d9"
+    }
+  },
+  "kernelSource": {
+    "version": "6.12.118",
+    "debianPackage": "linux-source-6.12_6.12.118-1_all.deb",
+    "url": "https://deb.debian.org/debian/pool/main/l/linux/linux-source-6.12_6.12.118-1_all.deb",
+    "sha256": "b75bb2e78a5c7762254e2af7685085c788a67eb342cb4092ad2a05eaf9fc33b7"
+  },
+  "architectures": {
+    "x86_64": {
+      "dockerPlatform": "linux/amd64",
+      "debianImage": "debian:trixie-slim@sha256:38a76d01668772e381ad2826d876627c89e7133e2f8a0f5d567306798b0f2a16",
+      "kernelPackage": "linux-image-amd64",
+      "serverArchive": "code-server-4.146.0-linux-amd64.tar.gz",
+      "serverUrl": "https://github.com/coder/code-server/releases/download/v4.146.0/code-server-4.146.0-linux-amd64.tar.gz",
+      "serverSha256": "cf7e82ca5fe1df664d43a43d900c3c9710f8f3403a5e8d0e18f6a12d10d7401b",
+      "guestMachine": "q35",
+      "guestCpu": "max",
+      "console": "ttyS0"
+    },
+    "arm64-v8a": {
+      "dockerPlatform": "linux/arm64",
+      "debianImage": "debian:trixie-slim@sha256:65d15c0ac2dd6639a130a05ffaf36b9d60697ef8d07125d79aecaaa9871bc97b",
+      "kernelPackage": "linux-image-arm64",
+      "serverArchive": "code-server-4.146.0-linux-arm64.tar.gz",
+      "serverUrl": "https://github.com/coder/code-server/releases/download/v4.146.0/code-server-4.146.0-linux-arm64.tar.gz",
+      "serverSha256": "3df88f7f1feecce3583ab0109c5f6bf14f90ae3a44939b4257ccd9850ef37a6e",
+      "guestMachine": "virt,gic-version=3",
+      "guestCpu": "cortex-a72",
+      "console": "ttyAMA0"
+    }
+  }
+}
